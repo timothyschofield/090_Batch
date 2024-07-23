@@ -1,3 +1,7 @@
+"""
+    App.py
+
+"""
 from pathlib import Path 
 import pandas as pd
 import os
@@ -8,9 +12,7 @@ def path_exists(input_path):
         print(f"ERROR: {input_path} file does not exits")
         exit()
     else:
-        print(f"OK: READING {input_path}")   
-
-
+        print(f"OK: READING {input_path}")
 
 class App:
     def __init__(self):
@@ -29,33 +31,38 @@ class App:
         
         self.batch_name = None
         self.unique_id_col = None
-        self.unique_id_mode = "auto"
+        self.unique_id_mode = None # "auto" or "unique_id_col"
         
+        # This code is not fully generalised and only deals with OCRing images
         self.prompt = (f"Read this herbarium sheet and return the text.")
         self.max_tokens = 8192
         self.model = "gpt-4o-mini"
  
     """
-    Creates a new JSONL file for batch upload from a CSV
+    
+    create_source_jsonl(source_csv_file_name, image_col, unique_id_col)
+    
+    Creates a JSONL file from a CSV
+    
     This is specificaly for doing image OCR - it is not generalised
-    The csv should be in the batch_source_csv folder
-    The resultant JSONL file will be created in the batch_input folder
+    The source CSV should be in the batch_source_csv folder
+    The resultant JSONL file will be created in the batch_input folder and have the same name as the source CSV, exept with a JSONl extension.
+    This method translates the whole of the CSV into a JSONL file, line by line.
     
-    num_images_to_batch: must be smaller or equal to the number of lines in the source CSV
-        pass in -1 if you want to batch the whole of the souce CSV
-        
-    unique_id_col: A unique id for the image line. This usualy comes from
+    To create a file for batch processing, you sample from this file - and create a second file for uploading.
+    For instance you may want to batch process lines 0 to 100 or line 200 to 700. This is a secondary process in the workflow.
     
+    unique_id_col: The name of the column in the source CSV containing a unique id for the line.
+    If you don't have a unique id column to pass into unique_id_col then pass in "custom_id"
+    The JSONL lines will then be uniquely identified as custom_id-0, custom_id-1, custom_id-2, etc.
     
     """
-    def create_source_image_jsonl(self, source_csv_file_name, image_col, batch_name, unique_id_col, num_images_to_batch):
+    def create_source_jsonl(self, source_csv_file_name, image_col, unique_id_col):
         
         self.source_csv_file_name = Path(source_csv_file_name)
         self.source_csv_file_path = Path(f"{self.batch_source_csv_folder}/{self.source_csv_file_name}")
-        self.source_csv_image_col = image_col 
-        self.batch_name = batch_name
-        self.unique_id_col = unique_id_col    
-        self.num_images_to_batch = num_images_to_batch 
+        self.source_csv_image_col = image_col
+        self.unique_id_col = unique_id_col
         
         path_exists(self.source_csv_file_path)
         
@@ -67,26 +74,25 @@ class App:
             print(f"ERROR: image column {self.source_csv_image_col} does NOT exists.")
             exit()
         
-        len_input_csv = len(df_input_csv)
-        if self.num_images_to_batch > len_input_csv:
-            print(f"ERROR: The requested number of images to batch is {self.num_images_to_batch} which is longer than the source CSV's {len_input_csv}.")
-            exit()
-        else:
-            if self.num_images_to_batch == -1:
-                self.num_images_to_batch = len_input_csv
-                
-        print(f"OK: number of images to batch is {self.num_images_to_batch}.")
-        
-        if self.unique_id_col == self.batch_name:
+        if self.unique_id_col == "custom_id":
             # There was no unique column to identify each line by so auto mode
-            # name the lines batch_name-0, batch_name-1, batch_name-2, etc.
+            # name the lines custom_id-0, custom_id-1, custom_id-2, etc.
             self.unique_id_mode = "auto"
-            print(f"OK: unique_id_mode = auto. Lines in batch will be uniquely identified as {self.batch_name}-0, {self.batch_name}-1, etc.")
+            print(f"OK: unique_id_mode = auto. Lines in batch will be uniquely identified as custom_id-0, custom_id-1, etc.")
         else:
-            self.unique_id_mode = "id_col"
+            self.unique_id_mode = "unique_id_col"
             if self.unique_id_col in df_input_csv.columns:
-                print(f"OK: unique_id_mode = id_col. Lines in batch will be uniquely identified as according to the {self.unique_id_col} column.")
+                print(f"OK: unique_id_mode = unique_id_col. Lines in the batch will be uniquely identified as according to the {self.unique_id_col} column.")
             else:
                 print(f"ERROR: unique id column {self.unique_id_col} does not exist in the source CSV.")
                 exit()
+        
+        
+        
+        
+        
+        
+        
+        
+        
         
