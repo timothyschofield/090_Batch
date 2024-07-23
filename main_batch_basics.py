@@ -105,7 +105,7 @@ print("---------------------------------")
 for batch in active_batches.data:
     print(f"id: {batch.id}, status: {batch.status}, {batch.request_counts}, output_file_id: {batch.output_file_id}")
 print("---------------------------------")
-
+exit()
 # Deleteing batches
 
 # 1) Uploads the file with the batch of OpenAI requests - one on each line
