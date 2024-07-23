@@ -22,12 +22,12 @@ import sys
 
 print(f"Python version {sys.version}")
 
-def create_jsonl_batch_line(request_id, model, prompt, url_request, num_tokens):
+def create_jsonl_batch_line(request_id, model, prompt, url_request, max_tokens):
     
     messages = f'[{{"role": "user","content": [{{"type": "text", "text": "{prompt}"}}, {{"type": "image_url", "image_url": {{"url": "{url_request}"}}}}]}}]'
 
     ret =   (
-            f'{{"custom_id": "{request_id}", "method": "POST", "url": "/v1/chat/completions", "body": {{"model": "{model}", "messages": {messages}, "max_tokens": {num_tokens}}}}}'
+            f'{{"custom_id": "{request_id}", "method": "POST", "url": "/v1/chat/completions", "body": {{"model": "{model}", "messages": {messages}, "max_tokens": {max_tokens}}}}}'
             )
 
     return ret

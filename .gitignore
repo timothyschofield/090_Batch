@@ -1,5 +1,5 @@
 __pycache__/
 batch_input/
 batch_output/
-ny_herbarium_input/
+batch_source_csv/
 .env

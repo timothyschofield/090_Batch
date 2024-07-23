@@ -59,7 +59,7 @@ metadata: Optional custom metadata for the batch. << what is this?
 import openai
 from openai import OpenAI
 from dotenv import load_dotenv
-from helper_functions_batch import get_file_timestamp, is_json, make_payload, clean_up_ocr_output_json_content, are_keys_valid, get_headers, save_dataframe_to_csv
+from helper_functions_batch import get_file_timestamp,are_keys_valid, get_headers, save_dataframe_to_csv
 
 import requests
 import os
@@ -149,8 +149,8 @@ jsonl_list = batch_get_output_response.text.splitlines()
 print(len(jsonl_list))
 jsonl_dict_list = []
 x = 1
-for jsnl_line in jsonl_list:
-    jsonl_dict_line = eval(jsnl_line.replace("null", "''"))
+for jsonl_line in jsonl_list:
+    jsonl_dict_line = eval(jsonl_line.replace("null", "''"))
     
     this_output_line = dict()
     this_output_line["custom_id"] = jsonl_dict_line["custom_id"]
