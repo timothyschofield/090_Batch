@@ -7,13 +7,6 @@ import pandas as pd
 import os
 from helper_functions_batch import get_file_timestamp,are_keys_valid, get_headers, save_dataframe_to_csv
 
-def path_exists(input_path):
-    if os.path.exists(input_path) != True:
-        print(f"ERROR: {input_path} file does not exits")
-        exit()
-    else:
-        print(f"OK: READING {input_path}")
-
 class App:
     def __init__(self):
     
@@ -25,11 +18,13 @@ class App:
         self.source_csv_file_path = None
         self.source_csv_image_col = None
         
-        path_exists(self.batch_source_csv_folder)
-        path_exists(self.batch_input_folder)
-        path_exists(self.batch_output_folder)
+        self._path_exists(self.batch_source_csv_folder)
+        self._path_exists(self.batch_input_folder)
+        self._path_exists(self.batch_output_folder)
         
-        self.batch_name = None
+        self.source_jsonl_file_name = None
+        self.source_jsonl_file_path = None
+        
         self.unique_id_col = None
         self.unique_id_mode = None # "auto" or "unique_id_col"
         
@@ -46,11 +41,11 @@ class App:
     
     This is specificaly for doing image OCR - it is not generalised
     The source CSV should be in the batch_source_csv folder
-    The resultant JSONL file will be created in the batch_input folder and have the same name as the source CSV, exept with a JSONl extension.
+    The resultant JSONL file will be created in the batch_source_csv folder and have the same name as the source CSV, exept with a JSONl extension.
     This method translates the whole of the CSV into a JSONL file, line by line.
     
-    To create a file for batch processing, you sample from this file - and create a second file for uploading.
-    For instance you may want to batch process lines 0 to 100 or line 200 to 700. This is a secondary process in the workflow.
+    To create a file for batch processing, you sample from this JSONL file - and create a second JSONL file for uploading.
+    For instance you may want to batch process lines 0 to 100 or lines 200 to 700. This is a secondary process in the workflow.
     
     unique_id_col: The name of the column in the source CSV containing a unique id for the line.
     If you don't have a unique id column to pass into unique_id_col then pass in "custom_id"
@@ -64,7 +59,7 @@ class App:
         self.source_csv_image_col = image_col
         self.unique_id_col = unique_id_col
         
-        path_exists(self.source_csv_file_path)
+        self._path_exists(self.source_csv_file_path)
         
         df_input_csv = pd.read_csv(self.source_csv_file_path)
         
@@ -87,12 +82,41 @@ class App:
                 print(f"ERROR: unique id column {self.unique_id_col} does not exist in the source CSV.")
                 exit()
         
+        # Create the path for the JSONL source file
+        self.source_jsonl_file_name = Path(f"{self.source_csv_file_name.stem}.jsonl")
+        self.source_jsonl_file_path = Path(f"{self.batch_source_csv_folder}/{self.source_jsonl_file_name}")
         
-        
-        
-        
-        
-        
-        
-        
+        jsonl_file_content = f""
+        for index, row in df_input_csv[0:].iterrows():
+            
+            if self.unique_id_mode == "auto":
+                custom_id = f"custom_id-{index}"
+            else:
+                custom_id = row[self.unique_id_col]
+            
+            jsonl_line = self._create_jsonl_batch_line(custom_id, self.model, self.model, row[self.source_csv_image_col], self.max_tokens)
+            jsonl_file_content = f"{jsonl_file_content}{jsonl_line}\n"
+            
+        print(f"WRITING: {self.source_jsonl_file_path}")
+        with open(self.source_jsonl_file_path, "w") as f:
+            f.write(jsonl_file_content)
+            
+    """
+    """      
+    def _create_jsonl_batch_line(self, request_id, model, prompt, url_request, max_tokens):
+    
+        messages = f'[{{"role": "user","content": [{{"type": "text", "text": "{prompt}"}}, {{"type": "image_url", "image_url": {{"url": "{url_request}"}}}}]}}]'
+
+        ret = f'{{"custom_id": "{request_id}", "method": "POST", "url": "/v1/chat/completions", "body": {{"model": "{model}", "messages": {messages}, "max_tokens": {max_tokens}}}}}'
+
+        return ret
+    
+    """
+    """
+    def _path_exists(self, input_path):
+        if os.path.exists(input_path) != True:
+            print(f"ERROR: {input_path} file does not exits")
+            exit()
+        else:
+            print(f"OK: READING {input_path}")
         
