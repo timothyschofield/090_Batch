@@ -23,34 +23,29 @@ batch_source_csv_folder = "batch_source_csv"
 batch_input_folder = "batch_input"
 batch_output_folder = "batch_output"
 
+source_csv_image_col = "DarImageURL"
+
+"""
+    source_csv_unique_id_col: The name of the column in the source CSV that is unique id for that line.
+    If you don't have a unique id column to pass into source_csv_unique_id_col then 
+    pass in any string that is NOT the name of a column in the source CSV.
+"""
+source_csv_unique_id_col = "DarCatalogNumber"
+
+model = "gpt-4o-mini"
+prompt = (f"Read this herbarium sheet and return the text.")
+max_tokens = 8192
+
+
 app1 = AppNew(source_csv_file=source_csv_file, 
               batch_source_csv_folder=batch_source_csv_folder, 
               batch_input_folder=batch_input_folder, 
-              batch_output_folder=batch_output_folder)
-
-
-exit()
-
-
-batch_file_name = "batchX"
-image_col = "DarImageURL"
-
-"""
-    unique_id_col: The name of the column in the source CSV that is unique id for that line.
-    If you don't have a unique id column to pass into unique_id_col then 
-    pass in any string that is NOT the name of a column in the source CSV.
-"""
-unique_id_col = "DarCatalogNumber"
-from_line = 0
-to_line = 100
-
-app1.create_source_jsonl(source_csv_file_name=source_csv_file_name, 
-                         batch_file_name=batch_file_name, 
-                         image_col=image_col, 
-                         unique_id_col=unique_id_col, 
-                         from_line=from_line, 
-                         to_line=to_line)  
-
+              batch_output_folder=batch_output_folder, 
+              source_csv_image_col=source_csv_image_col, 
+              source_csv_unique_id_col=source_csv_unique_id_col,
+              model=model,
+              prompt=prompt,
+              max_tokens=max_tokens)
 
 
 

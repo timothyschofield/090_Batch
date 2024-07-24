@@ -11,14 +11,33 @@ from helper_functions_batch import get_file_timestamp,are_keys_valid, get_header
 from BatchController import BatchController
 
 class AppNew:
-    def __init__(self, source_csv_file, batch_source_csv_folder, batch_input_folder, batch_output_folder):
+    def __init__(self, 
+                 source_csv_file, 
+                 batch_source_csv_folder, 
+                 batch_input_folder, 
+                 batch_output_folder, 
+                 source_csv_image_col, 
+                 source_csv_unique_id_col, 
+                 model, 
+                 prompt, 
+                 max_tokens):
 
         self.paths = dict()
+        
         self.paths["source_csv_file"] = self._path_exists(Path(f"{batch_source_csv_folder}/{source_csv_file}"))
+        
+        source_jsonl_file = f"{Path(source_csv_file).stem}.jsonl"
+        self.paths["source_jsonl_file"] = Path(f"{batch_source_csv_folder}/{source_jsonl_file}")
+        
         self.paths["input_folder"] = self._path_exists(Path(batch_input_folder))
         self.paths["output_folder"] = self._path_exists(Path(batch_output_folder))
         
-        self.batch_controller = BatchController(paths=self.paths)
+        self.batch_controller = BatchController(paths=self.paths, 
+                                                source_csv_image_col=source_csv_image_col, 
+                                                source_csv_unique_id_col=source_csv_unique_id_col, 
+                                                model=model, 
+                                                prompt=prompt, 
+                                                max_tokens=max_tokens)
         
     """
     """
