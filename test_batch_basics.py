@@ -105,7 +105,7 @@ print("---------------------------------")
 for batch in active_batches.data:
     print(f"id: {batch.id}, status: {batch.status}, {batch.request_counts}, output_file_id: {batch.output_file_id}")
 print("---------------------------------")
-exit()
+
 """
 id: batch_elUmiErkxQvHScS2kNSF1Vws, status: completed, BatchRequestCounts(completed=96, failed=4, total=100), output_file_id: file-lXt6EchiDEH56Wto7nmi7kPR
 id: batch_3JTjqA49oe6Lzg2zMAtND3zI, status: completed, BatchRequestCounts(completed=10, failed=0, total=10), output_file_id: file-oRQ8Dnm2hVemBHQn4zkTCJH3

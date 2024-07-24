@@ -1,29 +1,33 @@
 """
     App.py
-
+    Author: Tim Schofield
+    Date: 23 July 2024 
 """
 from pathlib import Path 
 import pandas as pd
 import os
 from helper_functions_batch import get_file_timestamp,are_keys_valid, get_headers, save_dataframe_to_csv
 
+from BatchController import BatchController
+
 class App:
-    def __init__(self):
+    def __init__(self, source_csv_file):
     
-        self.batch_source_csv_folder =  Path(f"batch_source_csv")
-        self.batch_input_folder =  Path(f"batch_input")
-        self.batch_output_folder =  Path(f"batch_output")
+        self.batchController = BatchController()
+    
+        self.paths = dict()
+
+        self.paths["source_csv_file"] = self._path_exists(Path(f"{'batch_source_csv'}/{source_csv_file}"))
+        self.paths["input_folder"] = self._path_exists(Path(f"batch_input"))
+        self.paths["output_folder"] = self._path_exists(Path(f"batch_output"))
+        
         
         self.source_csv_file_name = None
         self.source_csv_file_path = None
         self.source_csv_image_col = None
-        
-        self._path_exists(self.batch_source_csv_folder)
-        self._path_exists(self.batch_input_folder)
-        self._path_exists(self.batch_output_folder)
-        
+
         self.batch_file_name = None
-        self.batch_file_file_path = None   
+        self.batch_file_path = None   
         
         self.unique_id_col = None
         self.unique_id_mode = None # "auto" or "unique_id_col"
@@ -119,4 +123,5 @@ class App:
             exit()
         else:
             print(f"OK: READING {input_path}")
+            return input_path
         

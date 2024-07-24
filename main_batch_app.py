@@ -16,10 +16,22 @@
     A CSV file of certain useful values in the data is also created - such as the OCR output and unique identifier.
 
 """
-from App import App
-app1 = App()
-  
-source_csv_file_name = "NY_specimens_to_transcribe_test.csv"
+from AppNew import AppNew
+
+source_csv_file = "NY_specimens_to_transcribe_test.csv"
+batch_source_csv_folder = "batch_source_csv"
+batch_input_folder = "batch_input"
+batch_output_folder = "batch_output"
+
+app1 = AppNew(source_csv_file=source_csv_file, 
+              batch_source_csv_folder=batch_source_csv_folder, 
+              batch_input_folder=batch_input_folder, 
+              batch_output_folder=batch_output_folder)
+
+
+exit()
+
+
 batch_file_name = "batchX"
 image_col = "DarImageURL"
 
