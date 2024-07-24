@@ -20,13 +20,24 @@ from App import App
 app1 = App()
   
 source_csv_file_name = "NY_specimens_to_transcribe_test.csv"
+batch_file_name = "batchX"
 image_col = "DarImageURL"
 
-# If you don't have a unique id column to pass into unique_id_col,  pass in "custom_id"
-# The JSONL lines will then be uniquely identified as custom_id-0, custom_id-1, custom_id-2, etc.
+"""
+    unique_id_col: The name of the column in the source CSV that is unique id for that line.
+    If you don't have a unique id column to pass into unique_id_col then 
+    pass in any string that is NOT the name of a column in the source CSV.
+"""
 unique_id_col = "DarCatalogNumber"
+from_line = 0
+to_line = 100
 
-app1.create_source_jsonl(source_csv_file_name=source_csv_file_name, image_col=image_col, unique_id_col=unique_id_col)  
+app1.create_source_jsonl(source_csv_file_name=source_csv_file_name, 
+                         batch_file_name=batch_file_name, 
+                         image_col=image_col, 
+                         unique_id_col=unique_id_col, 
+                         from_line=from_line, 
+                         to_line=to_line)  
 
 
 

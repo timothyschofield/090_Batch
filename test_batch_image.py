@@ -1,5 +1,5 @@
 """
-File : main_batch_image.py
+File : test_batch_image.py
 
 Author: Tim Schofield
 Date: 22 July 2024

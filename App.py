@@ -22,8 +22,8 @@ class App:
         self._path_exists(self.batch_input_folder)
         self._path_exists(self.batch_output_folder)
         
-        self.source_jsonl_file_name = None
-        self.source_jsonl_file_path = None
+        self.batch_file_name = None
+        self.batch_file_file_path = None   
         
         self.unique_id_col = None
         self.unique_id_mode = None # "auto" or "unique_id_col"
@@ -34,7 +34,6 @@ class App:
         self.model = "gpt-4o-mini"
  
     """
-    
     create_source_jsonl(source_csv_file_name, image_col, unique_id_col)
     
     Creates a JSONL file from a CSV
@@ -48,17 +47,20 @@ class App:
     For instance you may want to batch process lines 0 to 100 or lines 200 to 700. This is a secondary process in the workflow.
     
     unique_id_col: The name of the column in the source CSV containing a unique id for the line.
-    If you don't have a unique id column to pass into unique_id_col then pass in "custom_id"
-    The JSONL lines will then be uniquely identified as custom_id-0, custom_id-1, custom_id-2, etc.
-    
+    If you don't have a unique id column to pass into unique_id_col then 
+    pass in any string that is NOT the name of a column in the source CSV
     """
-    def create_source_jsonl(self, source_csv_file_name, image_col, unique_id_col):
+    def create_source_jsonl(self, source_csv_file_name, batch_file_name, image_col, unique_id_col, from_line, to_line):
         
         self.source_csv_file_name = Path(source_csv_file_name)
         self.source_csv_file_path = Path(f"{self.batch_source_csv_folder}/{self.source_csv_file_name}")
+        
+        self.batch_file_name = Path(f"{batch_file_name}.jsonl")
+        self.batch_file_path = Path(f"{self.batch_input_folder}/{self.batch_file_name}")
+        
         self.source_csv_image_col = image_col
         self.unique_id_col = unique_id_col
-        
+  
         self._path_exists(self.source_csv_file_path)
         
         df_input_csv = pd.read_csv(self.source_csv_file_path)
@@ -69,37 +71,35 @@ class App:
             print(f"ERROR: image column {self.source_csv_image_col} does NOT exists.")
             exit()
         
-        if self.unique_id_col == "custom_id":
-            # There was no unique column to identify each line by so auto mode
-            # name the lines custom_id-0, custom_id-1, custom_id-2, etc.
-            self.unique_id_mode = "auto"
-            print(f"OK: unique_id_mode = auto. Lines in batch will be uniquely identified as custom_id-0, custom_id-1, etc.")
-        else:
+        if self.unique_id_col in df_input_csv.columns:
             self.unique_id_mode = "unique_id_col"
-            if self.unique_id_col in df_input_csv.columns:
-                print(f"OK: unique_id_mode = unique_id_col. Lines in the batch will be uniquely identified as according to the {self.unique_id_col} column.")
-            else:
-                print(f"ERROR: unique id column {self.unique_id_col} does not exist in the source CSV.")
-                exit()
-        
-        # Create the path for the JSONL source file
-        self.source_jsonl_file_name = Path(f"{self.source_csv_file_name.stem}.jsonl")
-        self.source_jsonl_file_path = Path(f"{self.batch_source_csv_folder}/{self.source_jsonl_file_name}")
+            print(f"OK: unique_id_mode = unique_id_col. Lines in the batch will be uniquely identified as according to the {self.unique_id_col} column.")
+        else:
+            self.unique_id_mode = "auto"
+            print(f"OK: unique_id_mode = auto. Lines in batch will be uniquely identified as {self.unique_id_col}-0, {self.unique_id_col}-1, etc.")
         
         jsonl_file_content = f""
         for index, row in df_input_csv[0:].iterrows():
             
             if self.unique_id_mode == "auto":
-                custom_id = f"custom_id-{index}"
+                custom_id = f"{self.unique_id_col}-{index}"
             else:
                 custom_id = row[self.unique_id_col]
             
             jsonl_line = self._create_jsonl_batch_line(custom_id, self.model, self.model, row[self.source_csv_image_col], self.max_tokens)
             jsonl_file_content = f"{jsonl_file_content}{jsonl_line}\n"
             
-        print(f"WRITING: {self.source_jsonl_file_path}")
-        with open(self.source_jsonl_file_path, "w") as f:
+        print(f"WRITING: {self.batch_file_path}")
+        with open(self.batch_file_path, "w") as f:
             f.write(jsonl_file_content)
+       
+       
+       
+       
+       
+       
+       
+       
             
     """
     """      
