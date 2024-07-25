@@ -21,7 +21,8 @@ from App import App
 app1 = App()
 
 
-batch_name1 = "test_batch_10lines"
+batch_name1 = "test_batch_10linesTIM"
+batch_name2 = "test_batch_10linesSIMON"
 
 source_csv_path = "batch_source_csv/NY_specimens_to_transcribe_test.csv"
 source_csv_image_col = "DarImageURL"
@@ -39,4 +40,9 @@ max_tokens = 8192
 endpoint = "/v1/chat/completions"
 
 app1.do_batch(batch_name1, source_csv_path, source_csv_image_col, source_csv_unique_id_col, model, prompt, max_tokens, endpoint)
+
+
+app1.do_batch(batch_name2, source_csv_path, source_csv_image_col, source_csv_unique_id_col, model, prompt, max_tokens, endpoint)
+
+
 

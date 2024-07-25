@@ -49,9 +49,9 @@ class Batch():
         self.unique_id_mode = None
        
         self.batch_upload_response = None
-        self.batch_create_response = None
-        self.batch_get_info_response = None
-        
+        self.batch_info_response = None
+        self.batch_id = None    # Come back from OpenAI when the Batch is created
+
         self.df_input_csv = pd.read_csv(self.source_csv_path)
     
         if self.source_csv_image_col in self.df_input_csv.columns:
@@ -103,15 +103,16 @@ class Batch():
     """
     """ 
     def create(self):
-        self.batch_create_response = self.openai_client.batches.create(input_file_id=self.batch_upload_response.id, endpoint=self.endpoint, completion_window="24h")
-        print(self.batch_create_response)        
+        self.batch_info_response = self.openai_client.batches.create(input_file_id=self.batch_upload_response.id, endpoint=self.endpoint, completion_window="24h")
+        self.batch_id = self.batch_info_response.id
+        print(self.batch_info_response)        
         print("----------------------")
     """
     """ 
     def get_status(self):
-        self.batch_get_info_response = self.openai_client.batches.retrieve(self.batch_create_response.id)         
-        print(self.batch_get_info_response)        
-        print("----------------------")       
+        # print(f"In get_status. {self.batch_name} batch_id: ****{self.batch_id}****")
+        self.batch_info_response = self.openai_client.batches.retrieve(self.batch_id)
+        return self.batch_info_response
     """
     """ 
     def download(self):
