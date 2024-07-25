@@ -16,13 +16,13 @@
     A CSV file of certain useful values in the data is also created - such as the OCR output and unique identifier.
 
 """
-from AppNew import AppNew
+from App import App
 
-source_csv_file = "NY_specimens_to_transcribe_test.csv"
-batch_source_csv_folder = "batch_source_csv"
-batch_input_folder = "batch_input"
-batch_output_folder = "batch_output"
+app1 = App()
 
+
+batch_name = "test_batch_01"
+source_csv_path = "batch_source_csv/NY_specimens_to_transcribe_test.csv"
 source_csv_image_col = "DarImageURL"
 
 """
@@ -33,19 +33,8 @@ source_csv_image_col = "DarImageURL"
 source_csv_unique_id_col = "DarCatalogNumber"
 
 model = "gpt-4o-mini"
-prompt = (f"Read this herbarium sheet and return the text.")
+prompt = f"Read this herbarium sheet and return the text."
 max_tokens = 8192
 
-
-app1 = AppNew(source_csv_file=source_csv_file, 
-              batch_source_csv_folder=batch_source_csv_folder, 
-              batch_input_folder=batch_input_folder, 
-              batch_output_folder=batch_output_folder, 
-              source_csv_image_col=source_csv_image_col, 
-              source_csv_unique_id_col=source_csv_unique_id_col,
-              model=model,
-              prompt=prompt,
-              max_tokens=max_tokens)
-
-
+app1.do_batch(batch_name, source_csv_path, source_csv_image_col, source_csv_unique_id_col, model, prompt, max_tokens)
 

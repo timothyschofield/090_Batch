@@ -1,4 +1,13 @@
 import pandas as pd
+import os
+
+def path_exists(input_path):
+    if os.path.exists(input_path) != True:
+        print(f"ERROR: {input_path} file does not exits")
+        exit()
+    else:
+        print(f"OK: READING {input_path}")
+        return input_path
 
 # Takes input from a csv column and makes it appropriate for sql
 # May return None, int, float or str
