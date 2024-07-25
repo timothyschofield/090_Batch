@@ -114,15 +114,15 @@ id: batch_1Wdn2CwWdGXMyjyRlJB68Y7h, status: completed, BatchRequestCounts(comple
 # Deleteing batches
 
 # 1) Uploads the file with the batch of OpenAI requests - one on each line
-#batch_upload_response = client.files.create(file=open("my_image_batch100.jsonl", "rb"), purpose="batch")
-#print(batch_upload_response)
+batch_upload_response = client.files.create(file=open("my_image_batch100.jsonl", "rb"), purpose="batch")
+print(batch_upload_response)
 print("---------------------------------")
 # FileObject(id='file-cblacIDHGepXzvqnrP8gXisn', bytes=1169, created_at=1721591563, filename='my_batch_requests.jsonl', object='file', purpose='batch', status='processed', status_details=None)
 
 # 2) Create a batch processing request for the above uploaded file using the file id returned when you uploaded the file
 # NameError: 
-#batch_create_response = client.batches.create(input_file_id=batch_upload_response.id, endpoint="/v1/chat/completions", completion_window="24h")
-#print(batch_create_response)
+batch_create_response = client.batches.create(input_file_id=batch_upload_response.id, endpoint="/v1/chat/completions", completion_window="24h")
+print(batch_create_response)
 print("---------------------------------")
 """
 Batch(id='batch_BWFV2g9dRhkREYA7Xhd1kCaE', completion_window='24h', created_at=1721634817, endpoint='/v1/chat/completions', input_file_id='file-IrEATWJzlEWp4F0vwrBuY8mP', 

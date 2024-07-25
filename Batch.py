@@ -11,12 +11,24 @@
 from pathlib import Path 
 import pandas as pd
 import os
-from helper_functions_batch import get_file_timestamp,are_keys_valid, get_headers, save_dataframe_to_csv, path_exists
+from helper_functions_batch import get_file_timestamp, save_dataframe_to_csv, path_exists
 
 
 class Batch():
-    def __init__(self, input_folder, output_folder, batch_name, source_csv_path, source_csv_image_col, source_csv_unique_id_col, model, prompt, max_tokens):
+    def __init__(self,
+                 openai_client, 
+                 input_folder, 
+                 output_folder, 
+                 batch_name, 
+                 source_csv_path, 
+                 source_csv_image_col, 
+                 source_csv_unique_id_col, 
+                 model, 
+                 prompt, 
+                 max_tokens,
+                 endpoint):
         
+        self.openai_client = openai_client
         self.batch_name = batch_name
        
         self.input_folder = path_exists(Path(input_folder))
@@ -32,9 +44,14 @@ class Batch():
         self.model = model
         self.prompt = prompt
         self.max_tokens = max_tokens       
-       
+        self.endpoint = endpoint
+        
         self.unique_id_mode = None
        
+        self.batch_upload_response = None
+        self.batch_create_response = None
+        self.batch_get_info_response = None
+        
         self.df_input_csv = pd.read_csv(self.source_csv_path)
     
         if self.source_csv_image_col in self.df_input_csv.columns:
@@ -56,14 +73,14 @@ class Batch():
             print(f"OK {self.batch_name}: unique_id_mode = auto. Lines in batch will be uniquely identified as {self.source_csv_unique_id_col}-0, {self.source_csv_unique_id_col}-1, etc.") 
                 
         jsonl_file_content = f""
-        for index, row in self.df_input_csv[0:].iterrows():
+        for index, row in self.df_input_csv[0:10].iterrows():
             
             if self.unique_id_mode == "auto":
-                custom_id = f"{self.source_csv_unique_id_col}-{index}"
+                custom_id = f"{self.source_csv_unique_id_col}-{index:05}"
             else:
                 custom_id = row[self.source_csv_unique_id_col]
             
-            jsonl_line = self._create_jsonl_batch_line(custom_id, row[self.source_csv_image_col])
+            jsonl_line = self._create_jsonl_batch_line(custom_id=custom_id, url_request=row[self.source_csv_image_col], endpoint=self.endpoint)
             jsonl_file_content = f"{jsonl_file_content}{jsonl_line}\n"   
     
         print(f"WRITING {self.batch_name}: {self.input_file_path}")
@@ -73,24 +90,28 @@ class Batch():
     """
     """ 
     def do_batch(self):
-        print(f"OK {self.batch_name}: DO BATCH")
-        pass 
-    
+        print(f"OK DO BATCH: {self.batch_name}")
+        self.upload()
+        self.create()
+        self.get_status()
     """
     """ 
     def upload(self):
-        pass 
-      
+        self.batch_upload_response = self.openai_client.files.create(file=open(self.input_file_path, "rb"), purpose="batch") 
+        print(self.batch_upload_response)
+        print("----------------------")
     """
     """ 
-    def start(self):
-        pass        
-        
+    def create(self):
+        self.batch_create_response = self.openai_client.batches.create(input_file_id=self.batch_upload_response.id, endpoint=self.endpoint, completion_window="24h")
+        print(self.batch_create_response)        
+        print("----------------------")
     """
     """ 
     def get_status(self):
-        pass         
-        
+        self.batch_get_info_response = self.openai_client.batches.retrieve(self.batch_create_response.id)         
+        print(self.batch_get_info_response)        
+        print("----------------------")       
     """
     """ 
     def download(self):
@@ -103,11 +124,11 @@ class Batch():
         
     """
     """      
-    def _create_jsonl_batch_line(self, custom_id, url_request):
+    def _create_jsonl_batch_line(self, custom_id, url_request, endpoint):
     
         messages = f'[{{"role": "user","content": [{{"type": "text", "text": "{self.prompt}"}}, {{"type": "image_url", "image_url": {{"url": "{url_request}"}}}}]}}]'
 
-        ret = f'{{"custom_id": "{custom_id}", "method": "POST", "url": "/v1/chat/completions", "body": {{"model": "{self.model}", "messages": {messages}, "max_tokens": {self.max_tokens}}}}}'
+        ret = f'{{"custom_id": "{custom_id}", "method": "POST", "url": "{endpoint}", "body": {{"model": "{self.model}", "messages": {messages}, "max_tokens": {self.max_tokens}}}}}'
 
         return ret    
         
