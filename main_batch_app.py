@@ -14,15 +14,38 @@
     A CSV file of certain useful values in the data is also created - such as the OCR output and unique identifier.
 
 """
+
 from App import App
 
 app1 = App()
 
 
-batch_name1 = "test_batch_10linesTIM"
-batch_name2 = "test_batch_10linesSIMON"
+"""
+Here is an example of how to produce two batches which process contiguouse lines
 
-source_csv_path = "batch_source_csv/NY_specimens_to_transcribe_test.csv"
+batch_name1 contains line 0 to 9 - i.e. 10 lines
+batch_name2 contains line 10 to 29 i.e. 20 lines
+If you want to process all lines to the end of the file pass to_line = None
+
+batch_name1 = "test_batch_10linesTIM"
+from_line1 = 0
+to_line1 = 10
+
+batch_name2 = "test_batch_20linesSIMON"
+from_line2 = 10
+to_line2 = 30
+
+"""
+
+batch_name1 = "test_batch_10linesTIM"
+from_line1 = 0
+to_line1 = 10
+
+batch_name2 = "test_batch_ENDlinesSIMON"
+from_line2 = 10
+to_line2 = None
+
+source_csv_path = "batch_source_csv/NY_specimens_to_transcribe_small.csv"
 source_csv_image_col = "DarImageURL"
 
 """
@@ -37,10 +60,10 @@ prompt = f"Read this herbarium sheet and return the text."
 max_tokens = 8192
 endpoint = "/v1/chat/completions"
 
-app1.do_batch(batch_name1, source_csv_path, source_csv_image_col, source_csv_unique_id_col, model, prompt, max_tokens, endpoint)
+app1.do_batch(batch_name1, source_csv_path, from_line1, to_line1, source_csv_image_col, source_csv_unique_id_col, model, prompt, max_tokens, endpoint)
 
 
-app1.do_batch(batch_name2, source_csv_path, source_csv_image_col, source_csv_unique_id_col, model, prompt, max_tokens, endpoint)
+app1.do_batch(batch_name2, source_csv_path, from_line2, to_line2, source_csv_image_col, source_csv_unique_id_col, model, prompt, max_tokens, endpoint)
 
 
 

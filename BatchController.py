@@ -32,24 +32,26 @@ class BatchController:
         
     """
     """
-    def do_batch(self, batch_name, source_csv_path, source_csv_image_col, source_csv_unique_id_col, model, prompt, max_tokens, endpoint):   
+    def do_batch(self, batch_name, source_csv_path, from_line, to_line, source_csv_image_col, source_csv_unique_id_col, model, prompt, max_tokens, endpoint):   
         
         if batch_name in self.batch_list.keys():
             print(f"ERROR {batch_name}: Batch name must be unique - {batch_name} already exists.")
             print(f"{batch_name} is not uploaded.")
             return False
         
-        this_batch = self.add_batch(batch_name, source_csv_path, source_csv_image_col, source_csv_unique_id_col, model, prompt, max_tokens, endpoint)
+        this_batch = self.add_batch(batch_name, source_csv_path, from_line, to_line, source_csv_image_col, source_csv_unique_id_col, model, prompt, max_tokens, endpoint)
         this_batch.do_batch()
     """
         Add a Batch to the BatchController
     """    
-    def add_batch(self, batch_name, source_csv_path, source_csv_image_col, source_csv_unique_id_col, model, prompt, max_tokens, endpoint):
+    def add_batch(self, batch_name, source_csv_path, from_line, to_line, source_csv_image_col, source_csv_unique_id_col, model, prompt, max_tokens, endpoint):
         this_batch = Batch(openai_client=self.openai_client, 
                            input_folder=self.input_folder, 
                            output_folder=self.output_folder, 
                            batch_name=batch_name, 
-                           source_csv_path=source_csv_path, 
+                           source_csv_path=source_csv_path,
+                           from_line=from_line,
+                           to_line=to_line,
                            source_csv_image_col=source_csv_image_col, 
                            source_csv_unique_id_col=source_csv_unique_id_col, 
                            model=model, 
@@ -73,7 +75,7 @@ class BatchController:
         
         for batch_name, batch in self.batch_list.items():
             
-            # You have to check for None to make sure the batch has been uploaded, created and come back with batch_id
+            # You have to check for batch_id != None to make sure the batch has been uploaded, created and come back with batch_id
             # because uploading and creating a batch is an asyncronouse process
             if batch.batch_id != None:
                 batch_info_response = batch.get_status()

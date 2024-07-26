@@ -10,12 +10,14 @@ from helper_functions_batch import get_file_timestamp, save_dataframe_to_csv, pa
 
 
 class Batch():
-    def __init__(self,
+    def __init__(self, 
                  openai_client, 
                  input_folder, 
                  output_folder, 
                  batch_name, 
-                 source_csv_path, 
+                 source_csv_path,
+                 from_line,
+                 to_line,
                  source_csv_image_col, 
                  source_csv_unique_id_col, 
                  model, 
@@ -33,6 +35,8 @@ class Batch():
         self.output_file_path = Path(f"{self.output_folder}/{self.batch_name}_output.jsonl")
         
         self.source_csv_path = path_exists(Path(source_csv_path))
+        self.from_line = from_line
+        self.to_line = to_line
         self.source_csv_image_col = source_csv_image_col
         self.source_csv_unique_id_col = source_csv_unique_id_col
         
@@ -62,6 +66,17 @@ class Batch():
         self.batch_status = None    
 
         self.df_input_csv = pd.read_csv(self.source_csv_path)
+        csv_len = len(self.df_input_csv)
+        if self.to_line == None: self.to_line = csv_len
+        
+        if self.from_line >= self.to_line:
+            print(f"ERROR {self.batch_name}: from_line: {self.from_line} must be smaller than to_line: {self.to_line}")
+            exit()
+            
+        if self.to_line > csv_len:
+            print(f"ERROR {self.batch_name}: to_line: {self.to_line} must be smaller or equal to than CSV length: {csv_len}")
+            exit()
+    
     
         if self.source_csv_image_col in self.df_input_csv.columns:
             print(f"OK {self.batch_name}: image column {self.source_csv_image_col} exists.")
@@ -82,7 +97,7 @@ class Batch():
             print(f"OK {self.batch_name}: unique_id_mode = auto. Lines in batch will be uniquely identified as {self.source_csv_unique_id_col}-0, {self.source_csv_unique_id_col}-1, etc.") 
                 
         jsonl_file_content = f""
-        for index, row in self.df_input_csv[0:10].iterrows():
+        for index, row in self.df_input_csv[self.from_line:self.to_line].iterrows():
             
             if self.unique_id_mode == "auto":
                 custom_id = f"{self.source_csv_unique_id_col}-{index:05}"
