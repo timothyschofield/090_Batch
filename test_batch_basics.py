@@ -102,11 +102,10 @@ except Exception as ex:
 active_batches = client.batches.list()
 #print(active_batches)
 print("---------------------------------")
-for batch in active_batches.data:
-    print(f"id: {batch.id}, status: {batch.status}, {batch.request_counts}, output_file_id: {batch.output_file_id}")
+#for batch in active_batches.data:
+    # print(f"id: {batch.id}, status: {batch.status}, {batch.request_counts}, output_file_id: {batch.output_file_id}")
 print("---------------------------------")
 
-exit()
 """
 id: batch_elUmiErkxQvHScS2kNSF1Vws, status: completed, BatchRequestCounts(completed=96, failed=4, total=100), output_file_id: file-lXt6EchiDEH56Wto7nmi7kPR
 id: batch_3JTjqA49oe6Lzg2zMAtND3zI, status: completed, BatchRequestCounts(completed=10, failed=0, total=10), output_file_id: file-oRQ8Dnm2hVemBHQn4zkTCJH3
@@ -115,15 +114,15 @@ id: batch_1Wdn2CwWdGXMyjyRlJB68Y7h, status: completed, BatchRequestCounts(comple
 # Deleteing batches
 
 # 1) Uploads the file with the batch of OpenAI requests - one on each line
-batch_upload_response = client.files.create(file=open("my_image_batch100.jsonl", "rb"), purpose="batch")
-print(batch_upload_response)
+#batch_upload_response = client.files.create(file=open("my_image_batch100.jsonl", "rb"), purpose="batch")
+#print(batch_upload_response)
 print("---------------------------------")
 # FileObject(id='file-cblacIDHGepXzvqnrP8gXisn', bytes=1169, created_at=1721591563, filename='my_batch_requests.jsonl', object='file', purpose='batch', status='processed', status_details=None)
 
 # 2) Create a batch processing request for the above uploaded file using the file id returned when you uploaded the file
 # NameError: 
-batch_create_response = client.batches.create(input_file_id=batch_upload_response.id, endpoint="/v1/chat/completions", completion_window="24h")
-print(batch_create_response)
+#batch_create_response = client.batches.create(input_file_id=batch_upload_response.id, endpoint="/v1/chat/completions", completion_window="24h")
+#print(batch_create_response)
 print("---------------------------------")
 """
 Batch(id='batch_BWFV2g9dRhkREYA7Xhd1kCaE', completion_window='24h', created_at=1721634817, endpoint='/v1/chat/completions', input_file_id='file-IrEATWJzlEWp4F0vwrBuY8mP', 
@@ -133,9 +132,9 @@ failed_at=None, finalizing_at=None, in_progress_at=None, metadata=None, output_f
 
 # openai.NotFoundError
 # 3) Check how the batch is doing. If status='completed' - get the output file
-batch_get_info_response = client.batches.retrieve('batch_elUmiErkxQvHScS2kNSF1Vws')
-print(batch_get_info_response)
-print(f"{batch_get_info_response.completed_at - batch_get_info_response.created_at} seconds")
+#batch_get_info_response = client.batches.retrieve('batch_elUmiErkxQvHScS2kNSF1Vws')
+#print(batch_get_info_response)
+#print(f"{batch_get_info_response.completed_at - batch_get_info_response.created_at} seconds")
 print("---------------------------------")
 """
 1 minutes later
@@ -147,9 +146,15 @@ metadata=None, output_file_id='file-jTmU4j9f3YVV88qYeDePUSJ8', request_counts=Ba
 
 # 4) Get the output file with the answers to the batch OpenAI queries - one response on each line
 # NameError: name 'batch_retrieve_response' is not defined
+# .text
+#.
 batch_get_output_response = client.files.content("file-lXt6EchiDEH56Wto7nmi7kPR")
-print(batch_get_output_response.text) # <openai._legacy_response.HttpxBinaryResponseContent object at 0x71d1dcfe3ac0>
+print(type(batch_get_output_response)) # <class 'openai._legacy_response.HttpxBinaryResponseContent'>
+
+# print(batch_get_output_response.text) # <openai._legacy_response.HttpxBinaryResponseContent object at 0x71d1dcfe3ac0>
 print("---------------------------------")
+
+
 
 jsonl_list = batch_get_output_response.text.splitlines()
 print(len(jsonl_list))
@@ -175,7 +180,6 @@ df_jsonl = pd.DataFrame(jsonl_dict_list)
 save_dataframe_to_csv(df_jsonl, "df_100")
 
 
-exit()
 batch_output_path = Path(f"my_image_batch_output100.jsonl")
 print(f"WRITING: {batch_output_path}")
 with open(batch_output_path, "w") as f:

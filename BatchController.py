@@ -77,6 +77,11 @@ class BatchController:
             if batch.batch_id != None:
                 batch_info_response = batch.get_status()
                 print(f"name: {batch_name}, status: {batch_info_response.status}, request_counts: {batch_info_response.request_counts}")
+
+                if batch.app_batch_status == "processing":
+                    if batch_info_response.status == "completed":
+                        batch.app_batch_status = "downloaded"
+                        batch.download()
                 
         print("----------------------------")
         threading.Timer(self.check_status_delay, self.check_status).start()       

@@ -11,7 +11,25 @@
 
     During batch processing the batch status is polled every few seconds or minutes and when it's status changes to "completed"
     the resultant data is downloaded and saved in it's entirety as a JSONL output file.
-    A CSV file of certain useful values in the data is also created - such as the OCR output and unique identifier.
+    A CSV of certain useful values in the data is also created - values like the OCR output and unique identifier.
+
+    Rate Limits
+
+    Batch API rate limits are separate from existing per-model rate limits. The Batch API has two new types of rate limits:
+
+    Per-batch limits: A single batch may include up to 50,000 requests, and a batch input file can be up to 100 MB in size. 
+    Note that /v1/embeddings batches are also restricted to a maximum of 50,000 embedding inputs across all requests in the batch.
+    Enqueued prompt tokens per model: Each model has a maximum number of enqueued prompt tokens allowed for batch processing. 
+    You can find these limits on the Platform Settings page.
+
+    There are no limits for output tokens or number of submitted requests for the Batch API today. 
+    Because Batch API rate limits are a new, separate pool, using the Batch API will not consume tokens from your standard per-model rate limits, 
+    thereby offering you a convenient way to increase the number of requests and processed tokens you can use when querying our API.
+    
+    Batch Expiration
+    Batches that do not complete in time eventually move to an expired state; unfinished requests within that batch are cancelled, 
+    and any responses to completed requests are made available via the batch's output file. 
+    You will be charged for tokens consumed from any completed requests.
 
 """
 
