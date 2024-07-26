@@ -26,7 +26,7 @@ class BatchController:
         self.input_folder = INPUT_FOLDER
         self.output_folder = OUTPUT_FOLDER
         
-        self.check_status_delay = 2 # seconds
+        self.check_status_delay = 5 # seconds
         
         self.check_status()
         
@@ -65,16 +65,19 @@ class BatchController:
         Check the status of all the batches every few seconds/minutes
         When a Batch status becomes "completed" the JSONP results file can be downloaded
         
-        Need to check that all batches have been up created and returned batch_id
+        Need to check that all batches have been up created and returned batch_id properly
         before starting this loop
     """
     def check_status(self):
         print(time.ctime())
         
         for batch_name, batch in self.batch_list.items():
+            
+            # You have to check for None to make sure the batch has been uploaded, created and come back with batch_id
+            # because uploading and creating a batch is an asyncronouse process
             if batch.batch_id != None:
                 batch_info_response = batch.get_status()
-                print(f"name: {batch_name}, status :{batch_info_response.status}, request_counts: {batch_info_response.request_counts}")
+                print(f"name: {batch_name}, status: {batch_info_response.status}, request_counts: {batch_info_response.request_counts}")
                 
         print("----------------------------")
         threading.Timer(self.check_status_delay, self.check_status).start()       

@@ -2,12 +2,7 @@
     Batch.py
     Author: Tim Schofield
     Date: 24 July 2024 
-
-    Batch does not inherit from BatchController, 
-    they has a parts-of relationship
-
 """
-
 from pathlib import Path 
 import pandas as pd
 import os
@@ -48,9 +43,23 @@ class Batch():
         
         self.unique_id_mode = None
        
+        # Come from the Batch API when Batch is uploaded or created 
         self.batch_upload_response = None
         self.batch_info_response = None
-        self.batch_id = None    # Come back from OpenAI when the Batch is created
+        self.batch_id = None  
+        
+        """
+        batch_status    Description
+        validating	    the input file is being validated before the batch can begin
+        failed	        the input file has failed the validation process
+        in_progress	    the input file was successfully validated and the batch is currently being run
+        finalizing	    the batch has completed and the results are being prepared
+        completed	    the batch has been completed and the results are ready
+        expired	the     batch was not able to be completed within the 24-hour time window
+        cancelling	    the batch is being cancelled (may take up to 10 minutes)
+        cancelled	    the batch was cancelled
+        """      
+        self.batch_status = None    
 
         self.df_input_csv = pd.read_csv(self.source_csv_path)
     
@@ -95,6 +104,9 @@ class Batch():
         self.create()
         self.get_status()
     """
+    completion_window="24h"
+    This is the maximum time the batch is allowed to take
+    If it does not complete in theis times, then unprocesses JSONL fails?
     """ 
     def upload(self):
         self.batch_upload_response = self.openai_client.files.create(file=open(self.input_file_path, "rb"), purpose="batch") 
@@ -105,13 +117,15 @@ class Batch():
     def create(self):
         self.batch_info_response = self.openai_client.batches.create(input_file_id=self.batch_upload_response.id, endpoint=self.endpoint, completion_window="24h")
         self.batch_id = self.batch_info_response.id
+        self.batch_status = self.batch_info_response.status
         print(self.batch_info_response)        
         print("----------------------")
     """
     """ 
     def get_status(self):
-        # print(f"In get_status. {self.batch_name} batch_id: ****{self.batch_id}****")
         self.batch_info_response = self.openai_client.batches.retrieve(self.batch_id)
+        self.batch_id = self.batch_info_response.id
+        self.batch_status = self.batch_info_response.status
         return self.batch_info_response
     """
     """ 
