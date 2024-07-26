@@ -10,23 +10,10 @@ from helper_functions_batch import get_file_timestamp, save_dataframe_to_csv, pa
 
 
 class Batch():
-    def __init__(self, 
-                 openai_client, 
-                 input_folder, 
-                 output_folder, 
-                 batch_name, 
-                 source_csv_path,
-                 from_line,
-                 to_line,
-                 source_csv_image_col, 
-                 source_csv_unique_id_col, 
-                 model, 
-                 prompt, 
-                 max_tokens,
-                 endpoint):
+    def __init__(self, openai_client, input_folder, output_folder, batch_data):
         
         self.openai_client = openai_client
-        self.batch_name = batch_name
+        self.batch_name = batch_data["batch_name"]
        
         self.input_folder = path_exists(Path(input_folder))
         self.input_file_path = Path(f"{self.input_folder}/{self.batch_name}_input.jsonl")
@@ -34,16 +21,16 @@ class Batch():
         self.output_folder = path_exists(Path(output_folder)) 
         self.output_file_path = Path(f"{self.output_folder}/{self.batch_name}_output.jsonl")
         
-        self.source_csv_path = path_exists(Path(source_csv_path))
-        self.from_line = from_line
-        self.to_line = to_line
-        self.source_csv_image_col = source_csv_image_col
-        self.source_csv_unique_id_col = source_csv_unique_id_col
+        self.source_csv_path = path_exists(Path(batch_data["source_csv_path"]))
+        self.from_line = batch_data["from_line"]
+        self.to_line = batch_data["to_line"]
+        self.source_csv_image_col = batch_data["source_csv_image_col"]
+        self.source_csv_unique_id_col = batch_data["source_csv_unique_id_col"]
         
-        self.model = model
-        self.prompt = prompt
-        self.max_tokens = max_tokens       
-        self.endpoint = endpoint
+        self.model = batch_data["model"]
+        self.prompt = batch_data["prompt"]
+        self.max_tokens = batch_data["max_tokens"]       
+        self.endpoint = batch_data["endpoint"]
         
         self.unique_id_mode = None
        

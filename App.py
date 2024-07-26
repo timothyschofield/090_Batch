@@ -29,6 +29,6 @@ class App:
         
     """
     """
-    def do_batch(self, batch_name, source_csv_path, from_line, to_line, source_csv_image_col, source_csv_unique_id_col, model, prompt, max_tokens, endpoint):
-        self.batch_controller.do_batch(batch_name, source_csv_path, from_line, to_line, source_csv_image_col, source_csv_unique_id_col, model, prompt, max_tokens, endpoint)
+    def do_batch(self, batch_data):
+        self.batch_controller.do_batch(batch_data)
         
