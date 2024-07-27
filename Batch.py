@@ -142,8 +142,9 @@ class Batch():
         self.api_batch_status = self.batch_info_response.status
         
         return self.batch_info_response
+    
     """
-        Downloads the resultant processed batch as a JSONL file
+        Downloads the resultant processed batch as a JSONL file and CSV file
     """ 
     def download(self):
         
@@ -166,10 +167,8 @@ class Batch():
             jsonl_dict_list.append(this_output_line)
             
         df_jsonl = pd.DataFrame(jsonl_dict_list)
-        # print(df_jsonl)
         
         print(f"WRITING: {self.output_file_path}.csv")
-        
         # Some important details
         save_dataframe_to_csv(df_jsonl, self.output_file_path)
         

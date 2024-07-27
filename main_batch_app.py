@@ -59,15 +59,17 @@ to_line2 = 30
     pass in any string that is NOT the name of a column in the source CSV and the columns will be labeled any_string-0, any_string-1, and so on.
 """
 
+# gpt-4o        max_tokens 4096  equivalent to gpt-4-turbo
+# gpt-4o-mini   max_tokens 16348 equivalent to gpt-3.5
 batch1_data = {"batch_name": "test_batch_10_lines", 
                "source_csv_path": "batch_source_csv/NY_specimens_to_transcribe_small.csv", 
                "from_line": 0, 
                "to_line": 10, 
                "source_csv_image_col": "DarImageURL", 
                "source_csv_unique_id_col": "DarCatalogNumber", 
-               "model": "gpt-4o-mini", 
+               "model": "gpt-4o", 
                "prompt": "Read this herbarium sheet and return the text.", 
-               "max_tokens": 8192, 
+               "max_tokens": 4096, 
                "endpoint": "/v1/chat/completions"}
 
 app1.do_batch(batch1_data)
@@ -78,9 +80,9 @@ batch2_data = {"batch_name": "test_batch_to_end_lines",
                "to_line": None, 
                "source_csv_image_col": "DarImageURL", 
                "source_csv_unique_id_col": "DarCatalogNumber", 
-               "model": "gpt-4o-mini", 
+               "model": "gpt-4o", 
                "prompt": "Read this herbarium sheet and return the text.", 
-               "max_tokens": 8192, 
+               "max_tokens": 4096, 
                "endpoint": "/v1/chat/completions"}
 
 app1.do_batch(batch2_data)
