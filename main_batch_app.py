@@ -72,12 +72,10 @@ batch1_data = {"batch_name": "test_batch_10_lines",
                "max_tokens": 4096, 
                "endpoint": "/v1/chat/completions"}
 
-app1.do_batch(batch1_data)
-
 batch2_data = {"batch_name": "test_batch_to_end_lines", 
                "source_csv_path": "batch_source_csv/NY_specimens_to_transcribe_small.csv", 
                "from_line": 10, 
-               "to_line": None, 
+               "to_line": 25, 
                "source_csv_image_col": "DarImageURL", 
                "source_csv_unique_id_col": "DarCatalogNumber", 
                "model": "gpt-4o", 
@@ -85,7 +83,10 @@ batch2_data = {"batch_name": "test_batch_to_end_lines",
                "max_tokens": 4096, 
                "endpoint": "/v1/chat/completions"}
 
+app1.do_batch(batch1_data)
 app1.do_batch(batch2_data)
+app1.start_batches()
 
+# app1.display_openai_batches()
 
 

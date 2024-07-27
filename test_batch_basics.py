@@ -71,6 +71,14 @@ import json
 import sys
 
 import datetime
+
+import time
+current_timestamp = time.time()
+print("Timestamp:", current_timestamp)
+exit()
+
+
+
 print(f"Python version {sys.version}")
 
 print(1721658713 - 1721658283) # seconds 430    - 3 * 143 secs each

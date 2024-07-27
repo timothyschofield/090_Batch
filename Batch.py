@@ -7,7 +7,7 @@ from pathlib import Path
 import pandas as pd
 import os
 from helper_functions_batch import get_file_timestamp, save_dataframe_to_csv, path_exists
-
+import time
 
 class Batch():
     def __init__(self, openai_client, input_folder, output_folder, batch_data):
@@ -54,6 +54,7 @@ class Batch():
         
         # "started", "uploaded", "processing", "downloaded"
         self.app_batch_status = "started"
+        self.start_time = None
 
         self.df_input_csv = pd.read_csv(self.source_csv_path)
         csv_len = len(self.df_input_csv)
@@ -105,6 +106,7 @@ class Batch():
     """ 
     def do_batch(self):
         print(f"OK DO BATCH: {self.batch_name}")
+        self.start_time = int(time.time())
         self.upload()
         self.create()
         self.get_status()
@@ -119,8 +121,8 @@ class Batch():
         self.api_batch_status = self.batch_upload_response.status
         self.app_batch_status = "uploaded"
         
-        print(self.batch_upload_response)
-        print("----------------------")
+        #print(self.batch_upload_response)
+        #print("----------------------")
     """
     """ 
     def create(self):
@@ -131,8 +133,8 @@ class Batch():
         self.api_batch_status = self.batch_info_response.status
         self.app_batch_status = "processing"
         
-        print(self.batch_info_response)        
-        print("----------------------")
+        #print(self.batch_info_response)        
+        #print("----------------------")
     """
     """ 
     def get_status(self):
@@ -176,6 +178,9 @@ class Batch():
         print(f"WRITING: {self.output_file_path}.jsonl")
         with open(f"{self.output_file_path}.jsonl", "w") as f:
             f.write(batch_get_content_response.text)
+        
+        end_time = int(time.time())
+        print(f"Processing time: {end_time - self.start_time} seconds")
         
     """
     """ 

@@ -27,9 +27,7 @@ class BatchController:
         self.output_folder = OUTPUT_FOLDER
         
         self.check_status_delay = 5 # seconds
-        
-        self.check_status()
-        
+        self.start_time = None
     """
     """
     def do_batch(self, batch_data):   
@@ -42,6 +40,7 @@ class BatchController:
         
         this_batch = self.add_batch(batch_data)
         this_batch.do_batch()
+
     """
         Add a Batch to the BatchController
     """    
@@ -55,34 +54,50 @@ class BatchController:
         return this_batch
     
     """
+        This must be called after creating all the Batches to monitor the Batches' progress
+    """
+    def start_batches(self):
+        self.start_time = int(time.time())
+        print(f"============ BATCHES STARTED: {time.ctime()} ============")
+        print(f"Number of Batches: {len(self.batch_list)}")
+        self.check_status()
+    
+    """
         Check the status of all the batches every few seconds/minutes
-        When a Batch status becomes "completed" the JSONP results file can be downloaded
-        
-        Need to check that all batches have been up created and returned batch_id properly
-        before starting this loop
+        When a Batch status becomes "completed" the JSONP and CSV results files is be downloaded
     """
     def check_status(self):
         print(time.ctime())
         
-        """
-        if len(self.batch_list) == 0:
-            print(f"NO BATCHES TO PROCESS: EXIT")
-            exit()
-        """
-          
+        processing_count = 0
         for batch_name, batch in self.batch_list.items():
             
-            # You have to check for batch_id != None to make sure the batch has been uploaded, created and come back with batch_id
-            # because uploading and creating a batch is an asyncronouse process
-            if batch.batch_id != None:
-                batch_info_response = batch.get_status()
-                print(f"name: {batch_name}, status: {batch_info_response.status}, request_counts: {batch_info_response.request_counts}")
+            batch_info_response = batch.get_status()
+            print(f"name: {batch_name}, status: {batch_info_response.status}, request_counts: {batch_info_response.request_counts}")
 
-                if batch.app_batch_status == "processing":
-                    if batch_info_response.status == "completed":
-                        batch.app_batch_status = "downloaded"
-                        batch.download()
-                
+            if batch.app_batch_status == "processing":
+                processing_count = processing_count + 1
+                if batch_info_response.status == "completed":
+                    batch.app_batch_status = "downloaded"
+                    batch.download()
+                        
         print("----------------------------")
-        threading.Timer(self.check_status_delay, self.check_status).start()       
+        if processing_count == 0:
+            print("============ ALL BATCHES COMPLETED ============")
+            end_time = int(time.time())
+            print(f"Processing time: {end_time - self.start_time} seconds")
+            exit()
+        else: threading.Timer(self.check_status_delay, self.check_status).start()
         
+        
+        
+        
+    
+    """
+    """
+    def display_openai_batches(self):    
+        active_batches = self.openai_client.batches.list()
+        print("---------------------------------")
+        for batch in active_batches.data:
+            print(f"id: {batch.id}, status: {batch.status}, {batch.request_counts}, output_file_id: {batch.output_file_id}")
+        print("---------------------------------")

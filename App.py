@@ -31,4 +31,13 @@ class App:
     """
     def do_batch(self, batch_data):
         self.batch_controller.do_batch(batch_data)
+   
+    """
+    """
+    def start_batches(self):
+        self.batch_controller.start_batches()
         
+    """
+    """
+    def display_openai_batches(self):   
+        self.batch_controller.display_openai_batches()
