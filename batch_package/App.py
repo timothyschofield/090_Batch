@@ -6,11 +6,10 @@
 from pathlib import Path 
 import pandas as pd
 import os
-from helper_functions_batch import get_file_timestamp,are_keys_valid, get_headers, save_dataframe_to_csv
 from dotenv import load_dotenv
 from openai import OpenAI
-
-from BatchController import BatchController
+ 
+from batch_package import BatchController
 
 class App:
     def __init__(self):
@@ -25,7 +24,7 @@ class App:
             print("Exception:", ex)
             exit()
 
-        self.batch_controller = BatchController(self.openai_client)
+        self.batch_controller = BatchController.BatchController(self.openai_client)
         
     """
     """

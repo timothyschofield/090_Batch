@@ -4,22 +4,21 @@
     Date: 24 July 2024 
 
 """
-
 from pathlib import Path 
 import pandas as pd
 import os
-from helper_functions_batch import get_file_timestamp,are_keys_valid, get_headers, save_dataframe_to_csv, path_exists
 import time, threading
 
-from Batch import Batch
+from batch_package import Batch
+from batch_package import batch_utils
 
 class BatchController:
     def __init__(self, openai_client):
         
         self.openai_client = openai_client
         
-        INPUT_FOLDER = path_exists(Path(f"batch_input"))
-        OUTPUT_FOLDER = path_exists(Path(f"batch_output"))
+        INPUT_FOLDER = batch_utils.path_exists(Path(f"batch_input"))
+        OUTPUT_FOLDER = batch_utils.path_exists(Path(f"batch_output"))
         
         self.batch_list = dict()
         
@@ -46,7 +45,7 @@ class BatchController:
     """    
     def add_batch(self, batch_data):
         
-        this_batch = Batch(openai_client=self.openai_client, input_folder=self.input_folder, output_folder=self.output_folder, batch_data=batch_data)
+        this_batch = Batch.Batch(openai_client=self.openai_client, input_folder=self.input_folder, output_folder=self.output_folder, batch_data=batch_data)
         
         batch_name = batch_data["batch_name"]
         self.batch_list[batch_name] = this_batch
@@ -87,12 +86,9 @@ class BatchController:
             end_time = int(time.time())
             print(f"Processing time: {end_time - self.start_time} seconds")
             exit()
-        else: threading.Timer(self.check_status_delay, self.check_status).start()
+        else: 
+            threading.Timer(self.check_status_delay, self.check_status).start()
         
-        
-        
-        
-    
     """
     """
     def display_openai_batches(self):    

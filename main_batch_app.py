@@ -32,10 +32,11 @@
     You will be charged for tokens consumed from any completed requests.
 
 """
-
-from App import App
+# python3 __pycache__/App.cpython-310.pyc
+from batch_package import App
 
 app1 = App()
+
 
 """
 Here is an example of how to produce two batches which process contiguouse lines of the input CSV
@@ -83,10 +84,12 @@ batch2_data = {"batch_name": "test_batch_to_end_lines",
                "max_tokens": 4096, 
                "endpoint": "/v1/chat/completions"}
 
+app1.display_openai_batches()
+
 app1.do_batch(batch1_data)
 app1.do_batch(batch2_data)
 app1.start_batches()
 
-# app1.display_openai_batches()
+
 
 

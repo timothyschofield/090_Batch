@@ -6,8 +6,9 @@
 from pathlib import Path 
 import pandas as pd
 import os
-from helper_functions_batch import get_file_timestamp, save_dataframe_to_csv, path_exists
 import time
+
+from batch_package import batch_utils
 
 class Batch():
     def __init__(self, openai_client, input_folder, output_folder, batch_data):
@@ -15,13 +16,13 @@ class Batch():
         self.openai_client = openai_client
         self.batch_name = batch_data["batch_name"]
        
-        self.input_folder = path_exists(Path(input_folder))
+        self.input_folder = batch_utils.path_exists(Path(input_folder))
         self.input_file_path = Path(f"{self.input_folder}/{self.batch_name}_input.jsonl")
         
-        self.output_folder = path_exists(Path(output_folder)) 
+        self.output_folder = batch_utils.path_exists(Path(output_folder)) 
         self.output_file_path = Path(f"{self.output_folder}/{self.batch_name}_output")
         
-        self.source_csv_path = path_exists(Path(batch_data["source_csv_path"]))
+        self.source_csv_path = batch_utils.path_exists(Path(batch_data["source_csv_path"]))
         self.from_line = batch_data["from_line"]
         self.to_line = batch_data["to_line"]
         self.source_csv_image_col = batch_data["source_csv_image_col"]
@@ -172,7 +173,7 @@ class Batch():
         
         print(f"WRITING: {self.output_file_path}.csv")
         # Some important details
-        save_dataframe_to_csv(df_jsonl, self.output_file_path)
+        batch_utils.save_dataframe_to_csv(df_jsonl, self.output_file_path)
         
         # The returned data in total
         print(f"WRITING: {self.output_file_path}.jsonl")
