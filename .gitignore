@@ -1,5 +1,6 @@
 back/
 batch_input/
 batch_output/
+batch_package/__pycache__/
 batch_source_csv/
 .env
