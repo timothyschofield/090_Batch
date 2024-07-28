@@ -4,7 +4,7 @@
     Date: 24 July 2024 
 
 """
-from pathlib import Path 
+from pathlib import Path  
 import pandas as pd
 import os
 import time, threading
@@ -54,6 +54,7 @@ class BatchController:
     
     """
         This must be called after creating all the Batches to monitor the Batches' progress
+        and download the results once a batch in completed
     """
     def start_batches(self):
         self.start_time = int(time.time())

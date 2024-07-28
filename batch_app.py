@@ -15,11 +15,12 @@
 
     Rate Limits
 
-    Batch API rate limits are separate from existing per-model rate limits. The Batch API has two new types of rate limits:
-
-    Per-batch limits: A single batch may include up to 50,000 requests, and a batch input file can be up to 100 MB in size. 
+    Batch API rate limits are separate from existing per-model rate limits. 
+    
+    The Batch API has two new types of rate limits:
+    1) Per-batch limits: A single batch may include up to 50,000 requests, and a batch input file can be up to 100 MB in size. 
     Note that /v1/embeddings batches are also restricted to a maximum of 50,000 embedding inputs across all requests in the batch.
-    Enqueued prompt tokens per model: Each model has a maximum number of enqueued prompt tokens allowed for batch processing. 
+    2) Enqueued prompt tokens per model: Each model has a maximum number of enqueued prompt tokens allowed for batch processing. 
     You can find these limits on the Platform Settings page.
 
     There are no limits for output tokens or number of submitted requests for the Batch API today. 
@@ -35,7 +36,7 @@
 # python3 __pycache__/App.cpython-310.pyc
 from batch_package import App
 
-app1 = App()
+app1 = App() 
 
 """
 Here is an example of how to produce two batches which process contiguouse lines of the input CSV
@@ -61,32 +62,32 @@ to_line2 = 30
 
 # gpt-4o        max_tokens 4096  equivalent to gpt-4-turbo
 # gpt-4o-mini   max_tokens 16348 equivalent to gpt-3.5
-batch1_data = {"batch_name": "test_batch_10_lines", 
-               "source_csv_path": "batch_source_csv/NY_specimens_to_transcribe_small.csv", 
-               "from_line": 0, 
-               "to_line": 10, 
-               "source_csv_image_col": "DarImageURL", 
-               "source_csv_unique_id_col": "DarCatalogNumber", 
-               "model": "gpt-4o", 
-               "prompt": "Read this herbarium sheet and return the text.", 
-               "max_tokens": 4096, 
-               "endpoint": "/v1/chat/completions"}
+batch1_data = {"batch_name": "test_batch_50_lines", 
+            "source_csv_path": "batch_source_csv/NY_specimens_to_transcribe_small.csv", 
+            "from_line": 0, 
+            "to_line": 50, 
+            "source_csv_image_col": "DarImageURL", 
+            "source_csv_unique_id_col": "DarCatalogNumber", 
+            "model": "gpt-4o", 
+            "prompt": "Read this herbarium sheet and return the text.", 
+            "max_tokens": 4096, 
+            "endpoint": "/v1/chat/completions"}
 
 batch2_data = {"batch_name": "test_batch_to_end_lines", 
-               "source_csv_path": "batch_source_csv/NY_specimens_to_transcribe_small.csv", 
-               "from_line": 10, 
-               "to_line": 25, 
-               "source_csv_image_col": "DarImageURL", 
-               "source_csv_unique_id_col": "DarCatalogNumber", 
-               "model": "gpt-4o", 
-               "prompt": "Read this herbarium sheet and return the text.", 
-               "max_tokens": 4096, 
-               "endpoint": "/v1/chat/completions"}
+            "source_csv_path": "batch_source_csv/NY_specimens_to_transcribe_small.csv", 
+            "from_line": 10, 
+            "to_line": 25, 
+            "source_csv_image_col": "DarImageURL", 
+            "source_csv_unique_id_col": "DarCatalogNumber", 
+            "model": "gpt-4o", 
+            "prompt": "Read this herbarium sheet and return the text.", 
+            "max_tokens": 4096, 
+            "endpoint": "/v1/chat/completions"}
 
 app1.display_openai_batches()
 
 app1.do_batch(batch1_data)
-app1.do_batch(batch2_data)
+#app1.do_batch(batch2_data)
 app1.start_batches()
 
 
