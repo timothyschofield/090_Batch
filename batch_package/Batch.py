@@ -96,7 +96,7 @@ class Batch():
             else:
                 custom_id = row[self.source_csv_unique_id_col]
             
-            jsonl_line = self._create_jsonl_batch_line(custom_id=custom_id, url_request=row[self.source_csv_image_col], endpoint=self.endpoint)
+            jsonl_line = batch_utils.create_jsonl_batch_line(custom_id=custom_id, url_request=row[self.source_csv_image_col], endpoint=self.endpoint, model=self.model, max_tokens=self.max_tokens)
             jsonl_file_content = f"{jsonl_file_content}{jsonl_line}\n"   
     
         print(f"WRITING {self.batch_name}: {self.input_file_path}")
@@ -188,18 +188,8 @@ class Batch():
     def cancel(self):
         pass          
         
-    """
-    """      
-    def _create_jsonl_batch_line(self, custom_id, url_request, endpoint):
+   
+        
     
-        messages = f'[{{"role": "user","content": [{{"type": "text", "text": "{self.prompt}"}}, {{"type": "image_url", "image_url": {{"url": "{url_request}"}}}}]}}]'
-
-        ret = f'{{"custom_id": "{custom_id}", "method": "POST", "url": "{endpoint}", "body": {{"model": "{self.model}", "messages": {messages}, "max_tokens": {self.max_tokens}}}}}'
-
-        return ret    
-        
-        
-        
-        
         
         
