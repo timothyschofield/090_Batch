@@ -56,7 +56,11 @@ class Batch():
         # "started", "uploaded", "processing", "downloaded"
         self.app_batch_status = "started"
         self.start_time = None
-
+        
+    """
+    """
+    def create_jsonl_from_csv(self):
+        
         self.df_input_csv = pd.read_csv(self.source_csv_path)
         csv_len = len(self.df_input_csv)
         if self.to_line == None: self.to_line = csv_len
@@ -96,18 +100,25 @@ class Batch():
             else:
                 custom_id = row[self.source_csv_unique_id_col]
             
-            jsonl_line = batch_utils.create_jsonl_batch_line(custom_id=custom_id, url_request=row[self.source_csv_image_col], endpoint=self.endpoint, model=self.model, max_tokens=self.max_tokens)
+            jsonl_line = batch_utils.create_jsonl_batch_line(custom_id=custom_id, 
+                                                             url_request=row[self.source_csv_image_col], 
+                                                             endpoint=self.endpoint, 
+                                                             model=self.model, 
+                                                             prompt=self.prompt, 
+                                                             max_tokens=self.max_tokens)
+            
             jsonl_file_content = f"{jsonl_file_content}{jsonl_line}\n"   
     
         print(f"WRITING {self.batch_name}: {self.input_file_path}")
         with open(self.input_file_path, "w") as f:
-            f.write(jsonl_file_content)     
+            f.write(jsonl_file_content)  
     
     """
     """ 
     def do_batch(self):
         print(f"OK DO BATCH: {self.batch_name}")
         self.start_time = int(time.time())
+        self.create_jsonl_from_csv()
         self.upload()
         self.create()
         self.get_status()

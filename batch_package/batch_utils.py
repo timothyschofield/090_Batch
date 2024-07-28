@@ -4,9 +4,9 @@ import os
 """
 Creates a JSONL line for OCRing from input from a CSV
 """      
-def create_jsonl_batch_line(self, custom_id, url_request, endpoint, model, max_tokens):
+def create_jsonl_batch_line(custom_id, url_request, endpoint, model, prompt, max_tokens):
 
-    messages = f'[{{"role": "user","content": [{{"type": "text", "text": "{self.prompt}"}}, {{"type": "image_url", "image_url": {{"url": "{url_request}"}}}}]}}]'
+    messages = f'[{{"role": "user","content": [{{"type": "text", "text": "{prompt}"}}, {{"type": "image_url", "image_url": {{"url": "{url_request}"}}}}]}}]'
 
     ret = f'{{"custom_id": "{custom_id}", "method": "POST", "url": "{endpoint}", "body": {{"model": "{model}", "messages": {messages}, "max_tokens": {max_tokens}}}}}'
 

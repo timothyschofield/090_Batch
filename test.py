@@ -51,22 +51,20 @@ else:
 
     complete_jsonl_json_list = []
     for jsonl_line in complete_jsonl_list:
-        jsonl_dict_line = eval(jsonl_line)
+        jsonl_dict_line = eval(jsonl_line) # JSON -> Dict - need so we can get the custom_id
         complete_jsonl_json_list.append(jsonl_dict_line)
 
     incomplete_jsonl_json_list = []
     for jsonl_line in incomplete_jsonl_list:
         
-        jsonl_dict_line = eval(jsonl_line.replace('null', '0'))
+        jsonl_dict_line = eval(jsonl_line.replace('null', '0')) # JSON -> Dict - need so we can get the custom_id
         incomplete_jsonl_json_list.append(jsonl_dict_line["custom_id"])
 
     fixup_content = f""
     for row in complete_jsonl_json_list:
         if row["custom_id"] not in incomplete_jsonl_json_list:
-            #print(f'Missing {row["custom_id"]}')
-            row = json.dumps(row) # This is needed to turn JSON with single quotes into JSON with double quotes
+            row = json.dumps(row) # json.dumps(row) converts the Dict -> JSON. This is needed to turn JSON with single quotes into JSON with double quotes
             fixup_content = f"{fixup_content}{row}\n"
-
 
     #print(f"****{fixup_content}****")
 

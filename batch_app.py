@@ -65,7 +65,7 @@ to_line2 = 30
 batch1_data = {"batch_name": "test_batch_all_45_lines", 
             "source_csv_path": "batch_source_csv/NY_specimens_to_transcribe_small.csv", 
             "from_line": 0, 
-            "to_line": None, 
+            "to_line": 10, 
             "source_csv_image_col": "DarImageURL", 
             "source_csv_unique_id_col": "DarCatalogNumber", 
             "model": "gpt-4o", 
@@ -87,7 +87,7 @@ batch2_data = {"batch_name": "test_batch_to_end_lines",
 app1.display_openai_batches()
 
 app1.do_batch(batch1_data)
-#app1.do_batch(batch2_data)
+app1.do_batch(batch2_data)
 app1.start_batches()
 
 
