@@ -12,6 +12,7 @@ Write program which starts with these two files and
 from pathlib import Path 
 import pandas as pd
 from batch_package import batch_utils
+import json
 
 endpoint = "/v1/chat/completions"
 model = "gpt-4o"
@@ -41,54 +42,38 @@ numlines_complete = len(complete_jsonl_list)
 numlines_incomplete = len(incomplete_jsonl_list)
 
 print(f"\nNumlines complete {complete_file_path} {numlines_complete}")
-print(f"Numlines incomplete {incomplete_file_path} {numlines_incomplete}")
+print(f"Numlines incomplete {incomplete_file_path} {numlines_incomplete}\n")
 
 if numlines_complete == numlines_incomplete:
     print(f"The output file: {incomplete_file_path} has the same number of lines as {complete_file_path} - so no fixing to do.")
 else:
     print(f"The output file: {incomplete_file_path} has fewer lines than {complete_file_path}\nSo we need to do a FIXUP batch")
 
-"""
+    complete_jsonl_json_list = []
+    for jsonl_line in complete_jsonl_list:
+        jsonl_dict_line = eval(jsonl_line)
+        complete_jsonl_json_list.append(jsonl_dict_line)
 
-jsonl_custom_id_list = []
-for jsonl_line in jsonl_list:
-    jsonl_dict_line = eval(jsonl_line.replace("null", "''"))
-    jsonl_custom_id_list.append(jsonl_dict_line["custom_id"])
-   
-   
-   
-   
-   
-# Now go through the CSV and see which lines are NOT in df_jsonl
-# These are the lines that failed in the Batch
-jsonl_file_content = f""
-for index, row in df_source_csv_path.iloc[0:].iterrows():
-    
-    # It is best that we compare as strings - because sometimes unique_ids will be strings
-    this_unique_id = str(row[source_csv_unique_id_col])
-    
-    if this_unique_id not in jsonl_custom_id_list:
-        # These are the rows that failed in the batch
-        print(f"{this_unique_id} NOT in jsonl_custom_id_list")
+    incomplete_jsonl_json_list = []
+    for jsonl_line in incomplete_jsonl_list:
         
-        # Make a JSONL file with the failed lines - to try again
-        jsonl_line = batch_utils.create_jsonl_batch_line(custom_id=this_unique_id, url_request=row[source_csv_image_col], endpoint=endpoint, model=model, max_tokens=max_tokens)
-        jsonl_file_content = f"{jsonl_file_content}{jsonl_line}\n"   
+        jsonl_dict_line = eval(jsonl_line.replace('null', '0'))
+        incomplete_jsonl_json_list.append(jsonl_dict_line["custom_id"])
 
-if jsonl_file_content == f"":
-    print(f"All lines present - no fix file created")
-else:
-    
-# Hum?
-# test_batch_all_45_lines_output.jsonl
-# test_batch_all_45_lines_input_fix1.jsonl
-incomplete_file
+    fixup_content = f""
+    for row in complete_jsonl_json_list:
+        if row["custom_id"] not in incomplete_jsonl_json_list:
+            #print(f'Missing {row["custom_id"]}')
+            row = json.dumps(row) # This is needed to turn JSON with single quotes into JSON with double quotes
+            fixup_content = f"{fixup_content}{row}\n"
 
-# Path(image_name).stem
 
-print(f"WRITING: {input_file_path}")
-with open(input_file_path, "w") as f:
-    f.write(jsonl_file_content) 
+    #print(f"****{fixup_content}****")
 
-"""
+fix_number = 1
+fix_file_name = f"{batch_name}_input_fix_{fix_number}.jsonl"
+fix_file_path = f"{input_folder}/{fix_file_name}"
 
+print(f"WRITING: {fix_file_path}")
+with open(fix_file_path, "w") as f:
+    f.write(fixup_content) 
