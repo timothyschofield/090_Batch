@@ -37,15 +37,15 @@ class BatchController:
             print(f"{batch_name} is not uploaded.")
             return False
         
-        this_batch = self.add_batch(batch_data)
-        this_batch.do_batch_from_csv()
+        this_batch = self.add_batch_from_csv(batch_data)
+        this_batch.do_batch()
 
     """
-        Add a Batch to the BatchController
+        Add a BatchFromCSV to the BatchController
     """    
-    def add_batch(self, batch_data):
+    def add_batch_from_csv(self, batch_data):
         
-        this_batch = Batch.Batch(openai_client=self.openai_client, input_folder=self.input_folder, output_folder=self.output_folder, batch_data=batch_data)
+        this_batch = Batch.BatchFromCSV(openai_client=self.openai_client, input_folder=self.input_folder, output_folder=self.output_folder, batch_data=batch_data)
         
         batch_name = batch_data["batch_name"]
         self.batch_list[batch_name] = this_batch

@@ -2,6 +2,16 @@
     Batch.py
     Author: Tim Schofield
     Date: 24 July 2024 
+    
+            Batch 
+            30 July 2024: fixup instance of BatchFromJSONL which dose the fix up
+                if its still not 1005 then that instance gets an instance of BatchFromJSONL - like a chain and they pass in their fixup number from
+            The top Batch instance and ++ it.. At each stage the fixup file gets written. 
+            Then when a batch comes back which is complete the chain unravels and writes a single file 
+            (which will then need reordering to make it like the origonal JSONL input file - if you care)
+            
+    subclssses BatchFromCSV and BatchFromJSONL
+    
 """
 from pathlib import Path 
 import pandas as pd
@@ -41,8 +51,97 @@ class Batch():
         # "started", "uploaded", "processing", "downloaded"
         self.app_batch_status = "started"
         self.start_time = None
+      
+    """
+    """
+    def do_batch(self): 
+        self.upload()
+        self.create()
+        self.get_status()
+    """
+    completion_window="24h"
+    This is the maximum time the batch is allowed to take
+    If it does not complete in theis times, then self.api_batch_status = expired
+    """ 
+    def upload(self):
+        self.batch_upload_response = self.openai_client.files.create(file=open(self.input_file_path, "rb"), purpose="batch")
         
+        self.api_batch_status = self.batch_upload_response.status
+        self.app_batch_status = "uploaded"
+        
+    """
+    """ 
+    def create(self):
+        self.batch_info_response = self.openai_client.batches.create(input_file_id=self.batch_upload_response.id, endpoint=self.endpoint, completion_window="24h")
+        
+        self.batch_id = self.batch_info_response.id
+        
+        self.api_batch_status = self.batch_info_response.status
+        self.app_batch_status = "processing"
+        
+    """
+    """ 
+    def get_status(self):
+        self.batch_info_response = self.openai_client.batches.retrieve(self.batch_id)
+        
+        self.batch_id = self.batch_info_response.id
+        self.api_batch_status = self.batch_info_response.status
+        
+        return self.batch_info_response
+    
+    """
+        Downloads the resultant processed batch as a JSONL file and CSV file
+    """ 
+    def download(self):
+        
+        batch_get_content_response = self.openai_client.files.content(self.batch_info_response.output_file_id)        
+        jsonl_list = batch_get_content_response.text.splitlines()
+        print(f"Returned JSONL has: {len(jsonl_list)} lines")
+        print("********************************************")
+        
+        jsonl_dict_list = []
+        for jsonl_line in jsonl_list:
+            jsonl_dict_line = eval(jsonl_line.replace("null", "''"))
+            
+            this_output_line = dict()
+            this_output_line["custom_id"] = jsonl_dict_line["custom_id"]
+            
+            #this_output_line["created"] = jsonl_dict_line["response"]["body"]["created"] # doesn't seem to mean much
+            
+            this_output_line["content"] = jsonl_dict_line["response"]["body"]["choices"][0]["message"]["content"]
+            this_output_line["finish_reason"] = jsonl_dict_line["response"]["body"]["choices"][0]["finish_reason"]
+            this_output_line["usage"] = jsonl_dict_line["response"]["body"]["usage"]
+            this_output_line["error"] =  jsonl_dict_line["error"]
+            jsonl_dict_list.append(this_output_line)
+            
+        df_jsonl = pd.DataFrame(jsonl_dict_list)
+        
+        print(f"WRITING: {self.output_file_path}.csv")
+        # Some important details
+        batch_utils.save_dataframe_to_csv(df_jsonl, self.output_file_path)
+        
+        # The returned data in total
+        print(f"WRITING: {self.output_file_path}.jsonl")
+        with open(f"{self.output_file_path}.jsonl", "w") as f:
+            f.write(batch_get_content_response.text)
+        
+        end_time = int(time.time())
+        print(f"Processing time: {end_time - self.start_time} seconds")
+        
+    """
+    """ 
+    def cancel(self):
+        pass          
+    
+"""
+    BatchFromCSV
+    Used for initialising the Batch from a CSV file
+    This is the first process that occures
+"""     
+class BatchFromCSV(Batch):
+    def __init__(self,  openai_client, input_folder, output_folder, batch_data):       
 
+        Batch.__init__(self, openai_client, input_folder, output_folder, batch_data)
         
         # Inheritance: Only in BatchFromCSV 
         self.source_csv_path = batch_utils.path_exists(Path(batch_data["source_csv_path"]))
@@ -58,10 +157,6 @@ class Batch():
         
         self.unique_id_mode = None
       
-    """
-    """
-    def create_jsonl_from_csv(self):
-        
         self.df_input_csv = pd.read_csv(self.source_csv_path)
         csv_len = len(self.df_input_csv)
         if self.to_line == None: self.to_line = csv_len
@@ -117,97 +212,27 @@ class Batch():
     
     """
     """ 
-    def do_batch_from_csv(self):
+    def do_batch(self):
         print(f"OK DO BATCH FOM CSV: {self.batch_name}")
         self.start_time = int(time.time())
-        self.create_jsonl_from_csv()
-        self.do_batch()
-        
+        super().do_batch() # call parent
+       
+"""
+    BatchFromJSONL
+    Used for doing fixups of Batchs when some lines fail and they come back with missing lines in the JSONL
+"""  
+class BatchFromJSONL(Batch):
+    def __init__(self,  openai_client, input_folder, output_folder, batch_data):       
+
+        Batch.__init__(self, openai_client, input_folder, output_folder, batch_data)
+    
+ 
     """
     """ 
-    def do_batch_from_jsonl(self):
+    def do_batch(self):
         print(f"OK DO BATCH FOM JSONL: {self.batch_name}")
         self.start_time = int(time.time())
-        self.do_batch()        
-        
-    """
-    """
-    def do_batch(self): 
-        self.upload()
-        self.create()
-        self.get_status()
-    """
-    completion_window="24h"
-    This is the maximum time the batch is allowed to take
-    If it does not complete in theis times, then self.api_batch_status = expired
-    """ 
-    def upload(self):
-        self.batch_upload_response = self.openai_client.files.create(file=open(self.input_file_path, "rb"), purpose="batch")
-        
-        self.api_batch_status = self.batch_upload_response.status
-        self.app_batch_status = "uploaded"
-        
-    """
-    """ 
-    def create(self):
-        self.batch_info_response = self.openai_client.batches.create(input_file_id=self.batch_upload_response.id, endpoint=self.endpoint, completion_window="24h")
-        
-        self.batch_id = self.batch_info_response.id
-        
-        self.api_batch_status = self.batch_info_response.status
-        self.app_batch_status = "processing"
-        
-    """
-    """ 
-    def get_status(self):
-        self.batch_info_response = self.openai_client.batches.retrieve(self.batch_id)
-        
-        self.batch_id = self.batch_info_response.id
-        self.api_batch_status = self.batch_info_response.status
-        
-        return self.batch_info_response
-    
-    """
-        Downloads the resultant processed batch as a JSONL file and CSV file
-    """ 
-    def download(self):
-        
-        batch_get_content_response = self.openai_client.files.content(self.batch_info_response.output_file_id)        
-        jsonl_list = batch_get_content_response.text.splitlines()
-        
-        jsonl_dict_list = []
-        for jsonl_line in jsonl_list:
-            jsonl_dict_line = eval(jsonl_line.replace("null", "''"))
-            
-            this_output_line = dict()
-            this_output_line["custom_id"] = jsonl_dict_line["custom_id"]
-            
-            #this_output_line["created"] = jsonl_dict_line["response"]["body"]["created"] # doesn't seem to mean much
-            
-            this_output_line["content"] = jsonl_dict_line["response"]["body"]["choices"][0]["message"]["content"]
-            this_output_line["finish_reason"] = jsonl_dict_line["response"]["body"]["choices"][0]["finish_reason"]
-            this_output_line["usage"] = jsonl_dict_line["response"]["body"]["usage"]
-            this_output_line["error"] =  jsonl_dict_line["error"]
-            jsonl_dict_list.append(this_output_line)
-            
-        df_jsonl = pd.DataFrame(jsonl_dict_list)
-        
-        print(f"WRITING: {self.output_file_path}.csv")
-        # Some important details
-        batch_utils.save_dataframe_to_csv(df_jsonl, self.output_file_path)
-        
-        # The returned data in total
-        print(f"WRITING: {self.output_file_path}.jsonl")
-        with open(f"{self.output_file_path}.jsonl", "w") as f:
-            f.write(batch_get_content_response.text)
-        
-        end_time = int(time.time())
-        print(f"Processing time: {end_time - self.start_time} seconds")
-        
-    """
-    """ 
-    def cancel(self):
-        pass          
+        super().do_batch() # call parent        
         
    
         
