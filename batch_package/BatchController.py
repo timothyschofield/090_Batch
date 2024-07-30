@@ -75,7 +75,7 @@ class BatchController:
         processing_count = 0
         for batch_name, batch in self.batch_list.items():
             
-            batch_info_response = batch.get_status()
+            batch_info_response = batch.get_api_status()
             print(f"name: {batch_name}, status: {batch_info_response.status}, request_counts: {batch_info_response.request_counts}")
 
             if batch.app_batch_status == "processing":

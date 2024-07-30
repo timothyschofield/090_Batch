@@ -33,10 +33,13 @@ class Batch():
         # Come from the Batch API when Batch is uploaded or created 
         self.batch_upload_response = None
         self.batch_info_response = None
+        
+        # The raw data returned from the Batch API - the JSONL lines are part of this and acceses by .text
         self.batch_get_content_response = None
         self.batch_id = None  
         
         self.returned_jsonl = None
+        self.numlines_in_uploaded_file = None
         
         """
         batch_status    Description
@@ -61,14 +64,21 @@ class Batch():
         self.start_time = int(time.time())
         self.upload()
         self.create()
-        self.get_status()
+        self.get_api_status()
     """
     completion_window="24h"
     This is the maximum time the batch is allowed to take
     If it does not complete in theis times, then self.api_batch_status = expired
     """ 
     def upload(self):
+        
+        # This is the best place to absolutly know how many lines were uploaded whether
+        # the file came via CSV or directly from JSONL
+        with open(f"{self.input_file_path}", "rb") as fp:
+            self.numlines_in_uploaded_file = len(fp.readlines())
+        
         self.batch_upload_response = self.openai_client.files.create(file=open(self.input_file_path, "rb"), purpose="batch")
+        # self.batch_upload_response = self.openai_client.files.create(file=open(self.input_file_path, "rb"), purpose="batch")
         
         self.api_batch_status = self.batch_upload_response.status
         self.app_batch_status = "uploaded"
@@ -85,7 +95,7 @@ class Batch():
         
     """
     """ 
-    def get_status(self):
+    def get_api_status(self):
         self.batch_info_response = self.openai_client.batches.retrieve(self.batch_id)
         
         self.batch_id = self.batch_info_response.id
@@ -98,17 +108,31 @@ class Batch():
     """ 
     def finished(self):
         
+        if self.batch_info_response.output_file_id == None:
+            print("No output_file_id returned from Batch API") # Must deal with this
+        
         self.batch_get_content_response = self.openai_client.files.content(self.batch_info_response.output_file_id)        
         self.returned_jsonl = self.batch_get_content_response.text.splitlines()
-        print(f"Returned JSONL has: {len(self.returned_jsonl)} lines")
+        
         print("********************************************")
+        print(f"Num JSONL lines uploded: {self.numlines_in_uploaded_file}")
+        
+        num_jsonl_lines_returned = len(self.returned_jsonl)
+        print(f"Returned JSONL has: {num_jsonl_lines_returned} lines")
+        print("********************************************")
+        if num_jsonl_lines_returned < self.numlines_in_uploaded_file:
+            print("Fixup is needed")
+        else:
+            print("No Fixup is needed")
         
         self.download()
         
     """
     """
-    def download(self):     
+    def download(self):
         
+        # Just confusing 
+        """
         jsonl_dict_list = []
         for jsonl_line in self.returned_jsonl:
             jsonl_dict_line = eval(jsonl_line.replace("null", "''"))
@@ -123,12 +147,14 @@ class Batch():
             this_output_line["usage"] = jsonl_dict_line["response"]["body"]["usage"]
             this_output_line["error"] =  jsonl_dict_line["error"]
             jsonl_dict_list.append(this_output_line)
-            
+        
+        
         df_jsonl = pd.DataFrame(jsonl_dict_list)
         
         print(f"WRITING: {self.output_file_path}.csv")
         # Some important details
         batch_utils.save_dataframe_to_csv(df_jsonl, self.output_file_path)
+        """
         
         # The returned data in total
         print(f"WRITING: {self.output_file_path}.jsonl")
@@ -138,8 +164,6 @@ class Batch():
         end_time = int(time.time())
         print(f"Processing time: {end_time - self.start_time} seconds")
         
-    """
-    """ 
 
 """
     BatchFromCSV
@@ -213,6 +237,8 @@ class BatchFromCSV(Batch):
                                                              max_tokens=self.max_tokens)
             
             jsonl_file_content = f"{jsonl_file_content}{jsonl_line}\n"   
+
+    
     
         print(f"WRITING {self.batch_name}: {self.input_file_path}")
         with open(self.input_file_path, "w") as f:
