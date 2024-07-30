@@ -33,6 +33,7 @@
     You will be charged for tokens consumed from any completed requests.
 
 """
+
 # python3 __pycache__/App.cpython-310.pyc
 from batch_package import App
 
@@ -60,12 +61,13 @@ to_line2 = 30
     pass in any string that is NOT the name of a column in the source CSV and the columns will be labeled any_string-0, any_string-1, and so on.
 """
 
-# gpt-4o        max_tokens 4096  equivalent to gpt-4-turbo
-# gpt-4o-mini   max_tokens 16348 equivalent to gpt-3.5
-batch1_data = {"batch_name": "test_batch_all_45_lines", 
+# gpt-4o        max_tokens  4096 equivalent to gpt-4-turbo
+# gpt-4o-mini   max_tokens 16348 equivalent to gpt-3.5 - NOT video or audio
+
+batch1_data = {"batch_name": "test_batch_20_lines", 
             "source_csv_path": "batch_source_csv/NY_specimens_to_transcribe_small.csv", 
             "from_line": 0, 
-            "to_line": 10, 
+            "to_line": 20, 
             "source_csv_image_col": "DarImageURL", 
             "source_csv_unique_id_col": "DarCatalogNumber", 
             "model": "gpt-4o", 
@@ -86,10 +88,26 @@ batch2_data = {"batch_name": "test_batch_to_end_lines",
 
 app1.display_openai_batches()
 
-app1.do_batch(batch1_data)
-app1.do_batch(batch2_data)
+app1.do_batch_from_csv(batch1_data)
+app1.do_batch_from_csv(batch2_data)
 app1.start_batches()
 
 
+"""
+# All data is already in the JSONL input file
+# input file is called test_batch_fix_lines_input_fixup_1.jsonl
+# batch_type ?
+batch1_data_jsonl = {"batch_name": "test_batch_fix_lines", 
+            "source_csv_path": "", 
+            "from_line": 0, 
+            "to_line": None, 
+            "source_csv_image_col": "", 
+            "source_csv_unique_id_col": "", 
+            "model": "", 
+            "prompt": "", 
+            "max_tokens": "", 
+            "endpoint": ""}
 
-
+app1.do_batch_from_jsonl(batch1_data_jsonl)
+app1.start_batches()
+"""

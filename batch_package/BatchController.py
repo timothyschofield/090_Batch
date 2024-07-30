@@ -29,7 +29,7 @@ class BatchController:
         self.start_time = None
     """
     """
-    def do_batch(self, batch_data):   
+    def do_batch_from_csv(self, batch_data):
         
         batch_name = batch_data["batch_name"]
         if batch_name in self.batch_list.keys():
@@ -38,7 +38,7 @@ class BatchController:
             return False
         
         this_batch = self.add_batch(batch_data)
-        this_batch.do_batch()
+        this_batch.do_batch_from_csv()
 
     """
         Add a Batch to the BatchController
@@ -60,11 +60,14 @@ class BatchController:
         self.start_time = int(time.time())
         print(f"============ BATCHES STARTED: {time.ctime()} ============")
         print(f"Number of Batches: {len(self.batch_list)}")
+        
         self.check_status()
     
     """
+        This is what drives the system
+        
         Check the status of all the batches every few seconds/minutes
-        When a Batch status becomes "completed" the JSONP and CSV results files is be downloaded
+        When a Batch status becomes "completed" the JSONP and CSV results files are downloaded
     """
     def check_status(self):
         print(time.ctime())

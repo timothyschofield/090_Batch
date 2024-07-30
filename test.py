@@ -5,8 +5,8 @@ test_batch_all_45_lines_output.jsonl had 9 failures and is only 36 lines long
 
 Write program which starts with these two files and
 1) identifies which lines are missing
-2) makes a NY_specimens_to_transcribe_small_fix_01.csv
-    with just the missing lines in      
+2) test_batch_all_45_lines_input_fixup_1.jsonl
+    with just the missing lines in  a fixup file   
 
 """
 from pathlib import Path 
@@ -18,7 +18,7 @@ endpoint = "/v1/chat/completions"
 model = "gpt-4o"
 max_tokens = 4096
 
-batch_name = "test_batch_all_45_lines"
+batch_name = "test_batch_fix_lines"
 
 # This is the origonal, complete, JSONL input file
 input_folder = Path("batch_input") 
@@ -69,9 +69,10 @@ else:
     #print(f"****{fixup_content}****")
 
 fix_number = 1
-fix_file_name = f"{batch_name}_input_fix_{fix_number}.jsonl"
+fix_file_name = f"{batch_name}_input_fixup_{fix_number}.jsonl"
 fix_file_path = f"{input_folder}/{fix_file_name}"
 
+# This file goes into the batch_input folder for reprocessing
 print(f"WRITING: {fix_file_path}")
 with open(fix_file_path, "w") as f:
     f.write(fixup_content) 

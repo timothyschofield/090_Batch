@@ -15,26 +15,11 @@ class Batch():
         
         self.openai_client = openai_client
         self.batch_name = batch_data["batch_name"]
-       
         self.input_folder = batch_utils.path_exists(Path(input_folder))
         self.input_file_path = Path(f"{self.input_folder}/{self.batch_name}_input.jsonl")
-        
         self.output_folder = batch_utils.path_exists(Path(output_folder)) 
         self.output_file_path = Path(f"{self.output_folder}/{self.batch_name}_output")
         
-        self.source_csv_path = batch_utils.path_exists(Path(batch_data["source_csv_path"]))
-        self.from_line = batch_data["from_line"]
-        self.to_line = batch_data["to_line"]
-        self.source_csv_image_col = batch_data["source_csv_image_col"]
-        self.source_csv_unique_id_col = batch_data["source_csv_unique_id_col"]
-        
-        self.model = batch_data["model"]
-        self.prompt = batch_data["prompt"]
-        self.max_tokens = batch_data["max_tokens"]       
-        self.endpoint = batch_data["endpoint"]
-        
-        self.unique_id_mode = None
-       
         # Come from the Batch API when Batch is uploaded or created 
         self.batch_upload_response = None
         self.batch_info_response = None
@@ -57,6 +42,22 @@ class Batch():
         self.app_batch_status = "started"
         self.start_time = None
         
+
+        
+        # Inheritance: Only in BatchFromCSV 
+        self.source_csv_path = batch_utils.path_exists(Path(batch_data["source_csv_path"]))
+        self.from_line = batch_data["from_line"]
+        self.to_line = batch_data["to_line"]
+        self.source_csv_image_col = batch_data["source_csv_image_col"]
+        self.source_csv_unique_id_col = batch_data["source_csv_unique_id_col"]
+        
+        self.model = batch_data["model"]
+        self.prompt = batch_data["prompt"]
+        self.max_tokens = batch_data["max_tokens"]       
+        self.endpoint = batch_data["endpoint"]
+        
+        self.unique_id_mode = None
+      
     """
     """
     def create_jsonl_from_csv(self):
@@ -93,13 +94,14 @@ class Batch():
             print(f"OK {self.batch_name}: unique_id_mode = auto. Lines in batch will be uniquely identified as {self.source_csv_unique_id_col}-0, {self.source_csv_unique_id_col}-1, and so on.") 
                 
         jsonl_file_content = f""
-        for index, row in self.df_input_csv[self.from_line:self.to_line].iterrows():
+        for index, row in self.df_input_csv[self.from_line: self.to_line].iterrows():
             
             if self.unique_id_mode == "auto":
                 custom_id = f"{self.source_csv_unique_id_col}-{index:05}"
             else:
                 custom_id = row[self.source_csv_unique_id_col]
             
+            # Yes - should probably be a method
             jsonl_line = batch_utils.create_jsonl_batch_line(custom_id=custom_id, 
                                                              url_request=row[self.source_csv_image_col], 
                                                              endpoint=self.endpoint, 
@@ -115,10 +117,22 @@ class Batch():
     
     """
     """ 
-    def do_batch(self):
-        print(f"OK DO BATCH: {self.batch_name}")
+    def do_batch_from_csv(self):
+        print(f"OK DO BATCH FOM CSV: {self.batch_name}")
         self.start_time = int(time.time())
         self.create_jsonl_from_csv()
+        self.do_batch()
+        
+    """
+    """ 
+    def do_batch_from_jsonl(self):
+        print(f"OK DO BATCH FOM JSONL: {self.batch_name}")
+        self.start_time = int(time.time())
+        self.do_batch()        
+        
+    """
+    """
+    def do_batch(self): 
         self.upload()
         self.create()
         self.get_status()
@@ -133,8 +147,6 @@ class Batch():
         self.api_batch_status = self.batch_upload_response.status
         self.app_batch_status = "uploaded"
         
-        #print(self.batch_upload_response)
-        #print("----------------------")
     """
     """ 
     def create(self):
@@ -145,8 +157,6 @@ class Batch():
         self.api_batch_status = self.batch_info_response.status
         self.app_batch_status = "processing"
         
-        #print(self.batch_info_response)        
-        #print("----------------------")
     """
     """ 
     def get_status(self):
