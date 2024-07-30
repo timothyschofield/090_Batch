@@ -81,8 +81,8 @@ class BatchController:
             if batch.app_batch_status == "processing":
                 processing_count = processing_count + 1
                 if batch_info_response.status == "completed":
-                    batch.app_batch_status = "downloaded"
-                    batch.download()
+                    batch.app_batch_status = "finished" 
+                    batch.finished()
                         
         print("----------------------------")
         if processing_count == 0:
