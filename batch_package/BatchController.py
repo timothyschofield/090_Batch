@@ -8,7 +8,7 @@ from pathlib import Path
 import pandas as pd
 import os
 import time, threading
-
+import datetime
 from batch_package import Batch
 from batch_package import batch_utils
 
@@ -74,9 +74,8 @@ class BatchController:
         
         processing_count = 0
         for batch_name, batch in self.batch_list.items():
-            
             batch_info_response = batch.get_api_status()
-            print(f"name: {batch_name}, status: {batch_info_response.status}, request_counts: {batch_info_response.request_counts}")
+            print(f"{batch.__class__.__name__} name: {batch_name},status: {batch_info_response.status}, request_counts: {batch_info_response.request_counts}")
 
             if batch.app_batch_status == "processing":
                 processing_count = processing_count + 1
@@ -89,15 +88,16 @@ class BatchController:
             print("============ ALL BATCHES COMPLETED ============")
             end_time = int(time.time())
             print(f"Processing time: {end_time - self.start_time} seconds")
-            exit()
+            # exit()
         else: 
             threading.Timer(self.check_status_delay, self.check_status).start()
         
     """
     """
     def display_openai_batches(self):    
-        active_batches = self.openai_client.batches.list()
+        active_batches = self.openai_client.batches.list(limit=20)
         print("---------------------------------")
         for batch in active_batches.data:
-            print(f"id: {batch.id}, status: {batch.status}, {batch.request_counts}, output_file_id: {batch.output_file_id}")
+            print(f"id: {batch.id}, status: {batch.status}, created: {datetime.datetime.utcfromtimestamp(batch.created_at)}, {batch.request_counts}, output_file_id: {batch.output_file_id}")
         print("---------------------------------")
+       
