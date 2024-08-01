@@ -83,7 +83,6 @@ class BatchController:
                     batch.app_batch_status = "finished" 
                     batch.finished()
                         
-        print("----------------------------")
         if processing_count == 0:
             print("============ ALL BATCHES COMPLETED ============")
             end_time = int(time.time())
@@ -93,11 +92,36 @@ class BatchController:
             threading.Timer(self.check_status_delay, self.check_status).start()
         
     """
+        The batches currently active, completed, processing etc., in the Batch API system
     """
     def display_openai_batches(self):    
-        active_batches = self.openai_client.batches.list(limit=20)
+        active_batches = self.openai_client.batches.list(limit=100)
         print("---------------------------------")
+        print("ACTIVE BATCHES")
         for batch in active_batches.data:
             print(f"id: {batch.id}, status: {batch.status}, created: {datetime.datetime.utcfromtimestamp(batch.created_at)}, {batch.request_counts}, output_file_id: {batch.output_file_id}")
         print("---------------------------------")
        
+    """
+        Cancels/Deletes the batches in the Batch API system whatever the state
+        
+        Can not cancel completed batchs
+        
+        If necessary, you can cancel an ongoing batch. 
+        The batch's status will change to cancelling until in-flight requests are complete (up to 10 minutes), 
+        after which the status will change to cancelled.
+        
+        openai.ConflictError: Error code: 409 - {'error': {'message': "Cannot cancel a batch with status 'completed'.", 'type': 'invalid_request_error', 'param': None, 'code': None}}
+        
+        Dosn't work
+    """
+    def cancel_openai_batches(self):
+        number_to_cancel = 20
+        active_batches = self.openai_client.batches.list(limit=number_to_cancel)
+        print(f"CANCELING {number_to_cancel} BATCHES")
+        for batch in active_batches.data:
+            print(f"id: {batch.id}, status: {batch.status}, created: {datetime.datetime.utcfromtimestamp(batch.created_at)}, {batch.request_counts}, output_file_id: {batch.output_file_id}")
+            self.openai_client.batches.cancel(batch.id)
+            
+        print("REMAINING BATCHES")
+        self.display_openai_batches()

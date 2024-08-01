@@ -3,7 +3,23 @@
     Author: Tim Schofield
     Date: 24 July 2024 
     
-            Batch 
+            Batch
+            
+            Need to do it all in memory - forget about intermediate files
+            1. Read inital CSV and store the inital_input_JSONL as a dict by unique_id column
+            2. Create an empty returned_JSON dict by unique_id column
+            
+            
+            2. Process input_JSONL and store the origonal returned_JSON
+            3. input_JSONL - returned_JSON = missing_JSOL
+            4. Process missing_JSOL
+            
+            
+            
+            
+            
+            
+            
             30 July 2024: fixup instance of BatchFromJSONL which dose the fix up
                 if its still not 1005 then that instance gets an instance of BatchFromJSONL - like a chain and they pass in their fixup number from
             The top Batch instance and ++ it.. At each stage the fixup file gets written. 
@@ -30,19 +46,18 @@ class Batch():
         self.output_folder = batch_utils.path_exists(Path(output_folder)) 
         self.output_file_path = Path(f"{self.output_folder}/{self.batch_name}_output")
         
-        # Come from the Batch API when Batch is uploaded or created 
-        self.batch_upload_response = None
-        self.batch_info_response = None
+        # Come from the Batch API
+        self.batch_upload_response = None   # returned from files.create
+        self.batch_info_response = None     # returned from batches.create and batches.retrieve
+        self.batch_content_response = None  # returned from files.content. The JSONL lines are part of this
         
-        # The raw data returned from the Batch API - the JSONL lines are part of this and acceses by .text
-        self.batch_get_content_response = None
-        self.batch_id = None  
+        self.batch_id = None                # The Batch API batch_id
         
-        self.returned_jsonl = None    # JSONL returned from Batch API 
+        self.returned_jsonl = None          # JSONL returned from Batch API 
         
         
         self.upload_file_content = None     # JSONL lines for file to upload to Batch API
-        self.upload_file_numlines = None    # Num lines in JSONL file to upload to Batch API
+        self.upload_file_numlines = None    # Num lines in JSONL file uploaded to Batch API
         
         """
         batch_status    Description
@@ -55,8 +70,10 @@ class Batch():
         cancelling	    the batch is being cancelled (may take up to 10 minutes)
         cancelled	    the batch was cancelled
         """      
-        self.api_batch_status = None  
+        self.api_batch_status = None  # The OpenAI batch status
         
+        # The status of Batch instances in this program
+        # Do not confuse with api_batch_status
         # "started", "uploaded", "processing", "finished"
         self.app_batch_status = "started"
         self.start_time = None
@@ -97,6 +114,7 @@ class Batch():
         self.app_batch_status = "processing"
         
     """
+        check the status of a batch
     """ 
     def get_api_status(self):
         self.batch_info_response = self.openai_client.batches.retrieve(self.batch_id)
@@ -114,8 +132,8 @@ class Batch():
         if self.batch_info_response.output_file_id == None:
             print("No output_file_id returned from Batch API") # Must deal with this wehne 0 lines returned
         
-        self.batch_get_content_response = self.openai_client.files.content(self.batch_info_response.output_file_id)        
-        self.returned_jsonl = self.batch_get_content_response.text.splitlines()
+        self.batch_content_response = self.openai_client.files.content(self.batch_info_response.output_file_id)        
+        self.returned_jsonl = self.batch_content_response.text.splitlines()
         
         print("********************************************")
         print(f"Num JSONL lines uploded: {self.upload_file_numlines}")
@@ -131,7 +149,7 @@ class Batch():
             
             #self.returned_jsonl         # 7 JSONL lines returned from Batch API 
             
-            #self.upload_file_content    # 10 JSONL lines for file to upload/input to Batch API
+            #self.upload_file_content    # 10 JSONL lines for file to upload/input to Batch API 
 
         else:
             print("NO FIXUP NEEDED - NO ACTION")
@@ -142,35 +160,10 @@ class Batch():
     """
     def download(self):
         
-        # Just confusing 
-        """
-        jsonl_dict_list = []
-        for jsonl_line in self.returned_jsonl:
-            jsonl_dict_line = eval(jsonl_line.replace("null", "''"))
-            
-            this_output_line = dict()
-            this_output_line["custom_id"] = jsonl_dict_line["custom_id"]
-            
-            #this_output_line["created"] = jsonl_dict_line["response"]["body"]["created"] # doesn't seem to mean much
-            
-            this_output_line["content"] = jsonl_dict_line["response"]["body"]["choices"][0]["message"]["content"]
-            this_output_line["finish_reason"] = jsonl_dict_line["response"]["body"]["choices"][0]["finish_reason"]
-            this_output_line["usage"] = jsonl_dict_line["response"]["body"]["usage"]
-            this_output_line["error"] =  jsonl_dict_line["error"]
-            jsonl_dict_list.append(this_output_line)
-        
-        
-        df_jsonl = pd.DataFrame(jsonl_dict_list)
-        
-        print(f"WRITING: {self.output_file_path}.csv")
-        # Some important details
-        batch_utils.save_dataframe_to_csv(df_jsonl, self.output_file_path)
-        """
-        
         # The returned data in total
         print(f"WRITING: {self.output_file_path}.jsonl")
         with open(f"{self.output_file_path}.jsonl", "w") as f:
-            f.write(self.batch_get_content_response.text)
+            f.write(self.batch_content_response.text)
         
         end_time = int(time.time())
         print(f"Processing time: {end_time - self.start_time} seconds")
@@ -259,7 +252,7 @@ class BatchFromCSV(Batch):
     """ 
     def do_batch(self):
         print(f"OK DO BATCH FOM CSV: {self.batch_name}")
-        super().do_batch() # call parent
+        super().do_batch()
        
 """
     BatchFromJSONL
@@ -270,12 +263,11 @@ class BatchFromJSONL(Batch):
 
         Batch.__init__(self, openai_client, input_folder, output_folder, batch_data)
     
-
     """
     """ 
     def do_batch(self):
         print(f"OK DO BATCH FOM JSONL: {self.batch_name}")
-        super().do_batch() # call parent        
+        super().do_batch()     
         
    
         

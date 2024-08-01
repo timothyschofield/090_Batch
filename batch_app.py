@@ -87,7 +87,7 @@ batch2_data = {"batch_name": "test_batch_to_end_lines",
             "max_tokens": 4096, 
             "endpoint": "/v1/chat/completions"}
 
-app1.display_openai_batches()
+# app1.display_openai_batches()
 
 app1.do_batch_from_csv(batch1_data)
 # app1.do_batch_from_csv(batch2_data)

@@ -40,3 +40,4 @@ class App:
     """
     def display_openai_batches(self):   
         self.batch_controller.display_openai_batches()
+        
