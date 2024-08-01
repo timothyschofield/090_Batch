@@ -78,6 +78,8 @@ class Batch():
         self.app_batch_status = "started"
         self.start_time = None
       
+        self.do_batch()
+      
     """
     """
     def do_batch(self): 
@@ -188,7 +190,7 @@ class BatchFromCSV(Batch):
         
         self.model = batch_data["model"]
         self.prompt = batch_data["prompt"]
-        self.max_tokens = batch_data["max_tokens"]       
+        self.max_tokens = batch_data["max_tokens"]
         self.endpoint = batch_data["endpoint"]
         
         self.unique_id_mode = None
@@ -243,7 +245,7 @@ class BatchFromCSV(Batch):
             self.upload_file_content = f"{self.upload_file_content}{jsonl_line}\n"   
 
     
-        # Write the for for uploading/inputting to the Batch API
+        # Write the for uploading/inputting to the Batch API
         print(f"WRITING {self.batch_name}: {self.input_file_path}")
         with open(self.input_file_path, "w") as f:
             f.write(self.upload_file_content)  

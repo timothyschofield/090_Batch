@@ -9,7 +9,7 @@ import pandas as pd
 import os
 import time, threading
 import datetime
-from batch_package import Batch
+from batch_package import BatchNew
 from batch_package import batch_utils
 
 class BatchController:
@@ -45,8 +45,8 @@ class BatchController:
     """    
     def add_batch_from_csv(self, batch_data):
         
-        this_batch = Batch.BatchFromCSV(openai_client=self.openai_client, input_folder=self.input_folder, output_folder=self.output_folder, batch_data=batch_data)
-        
+        this_batch = BatchNew.BatchNew(openai_client=self.openai_client, input_folder=self.input_folder, output_folder=self.output_folder, batch_data=batch_data)
+
         batch_name = batch_data["batch_name"]
         self.batch_list[batch_name] = this_batch
         

@@ -1,19 +1,6 @@
 import pandas as pd
 import os
 
-"""
-Creates a JSONL line for OCRing from input from a CSV
-"""      
-def create_jsonl_batch_line(custom_id, url_request, endpoint, model, prompt, max_tokens):
-
-    messages = f'[{{"role": "user","content": [{{"type": "text", "text": "{prompt}"}}, {{"type": "image_url", "image_url": {{"url": "{url_request}"}}}}]}}]'
-
-    ret = f'{{"custom_id": "{custom_id}", "method": "POST", "url": "{endpoint}", "body": {{"model": "{model}", "messages": {messages}, "max_tokens": {max_tokens}}}}}'
-
-    return ret 
-
-
-
 def path_exists(input_path):
     if os.path.exists(input_path) != True:
         print(f"ERROR: {input_path} file does not exits")
