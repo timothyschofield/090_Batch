@@ -89,26 +89,6 @@ batch2_data = {"batch_name": "test_batch_to_end_lines",
 
 # app1.display_openai_batches()
 
-app1.do_batch_from_csv(batch1_data)
-# app1.do_batch_from_csv(batch2_data)
-# app1.start_batches()
-
-
-"""
-# All data is already in the JSONL input file
-# input file is called test_batch_fix_lines_input_fixup_1.jsonl
-# batch_type ?
-batch1_data_jsonl = {"batch_name": "test_batch_fix_lines", 
-            "source_csv_path": "", 
-            "from_line": 0, 
-            "to_line": None, 
-            "source_csv_image_col": "", 
-            "source_csv_unique_id_col": "", 
-            "model": "", 
-            "prompt": "", 
-            "max_tokens": "", 
-            "endpoint": ""}
-
-app1.do_batch_from_jsonl(batch1_data_jsonl)
+app1.do_batch(batch1_data)
+# app1.do_batch(batch2_data)
 app1.start_batches()
-"""

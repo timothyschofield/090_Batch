@@ -9,7 +9,7 @@ import pandas as pd
 import os
 import time, threading
 import datetime
-from batch_package import BatchNew
+from batch_package import Batch
 from batch_package import batch_utils
 
 class BatchController:
@@ -29,7 +29,7 @@ class BatchController:
         self.start_time = None
     """
     """
-    def do_batch_from_csv(self, batch_data):
+    def do_batch(self, batch_data):
         
         batch_name = batch_data["batch_name"]
         if batch_name in self.batch_list.keys():
@@ -37,15 +37,15 @@ class BatchController:
             print(f"{batch_name} is not uploaded.")
             return False
         
-        this_batch = self.add_batch_from_csv(batch_data)
+        this_batch = self.add_batch(batch_data)
         this_batch.do_batch()
 
     """
         Add a BatchFromCSV to the BatchController
     """    
-    def add_batch_from_csv(self, batch_data):
+    def add_batch(self, batch_data):
         
-        this_batch = BatchNew.BatchNew(openai_client=self.openai_client, input_folder=self.input_folder, output_folder=self.output_folder, batch_data=batch_data)
+        this_batch = Batch.Batch(openai_client=self.openai_client, input_folder=self.input_folder, output_folder=self.output_folder, batch_data=batch_data)
 
         batch_name = batch_data["batch_name"]
         self.batch_list[batch_name] = this_batch
@@ -75,7 +75,7 @@ class BatchController:
         processing_count = 0
         for batch_name, batch in self.batch_list.items():
             batch_info_response = batch.get_api_status()
-            print(f"{batch.__class__.__name__} name: {batch_name},status: {batch_info_response.status}, request_counts: {batch_info_response.request_counts}")
+            print(f"name: {batch_name}, status: {batch_info_response.status}, request_counts: {batch_info_response.request_counts}")
 
             if batch.app_batch_status == "processing":
                 processing_count = processing_count + 1

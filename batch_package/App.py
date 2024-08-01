@@ -28,8 +28,8 @@ class App:
         
     """
     """
-    def do_batch_from_csv(self, batch_data):
-        self.batch_controller.do_batch_from_csv(batch_data)
+    def do_batch(self, batch_data):
+        self.batch_controller.do_batch(batch_data)
    
     """
     """

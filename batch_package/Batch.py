@@ -1,32 +1,23 @@
 """
     Batch.py
     Author: Tim Schofield
-    Date: 24 July 2024 
+    Date: 31 July 2024 
     
             Batch
             
             Need to do it all in memory - forget about intermediate files
-            1. Read inital CSV and store the inital_input_JSONL as a dict by unique_id column
-            2. Create an empty returned_JSON dict by unique_id column
+            1. Read inital CSV and store the JSONL_from_CSV as a dict by unique_id column
+            2. Create an empty JSONL_returned dict by unique_id column
+            
+            There is a distinction between a Batch and an API batch
+            Batch is always initalised from a CSV
+            Then Batch can set off an API batch,
+            It comes back with failiers
+            Batch sets of another API batch off etc - It doesn't care about previouse API batches - and dosn't need to keep a record of them
+            as long as the returned JSONL has been accumulated.
             
             
-            2. Process input_JSONL and store the origonal returned_JSON
-            3. input_JSONL - returned_JSON = missing_JSOL
-            4. Process missing_JSOL
-            
-            
-            
-            
-            
-            
-            
-            30 July 2024: fixup instance of BatchFromJSONL which dose the fix up
-                if its still not 1005 then that instance gets an instance of BatchFromJSONL - like a chain and they pass in their fixup number from
-            The top Batch instance and ++ it.. At each stage the fixup file gets written. 
-            Then when a batch comes back which is complete the chain unravels and writes a single file 
-            (which will then need reordering to make it like the origonal JSONL input file - if you care)
-            
-    subclssses BatchFromCSV and BatchFromJSONL
+    subclssses BatchFromCSV and BatchFromJSONL ?
     
 """
 from pathlib import Path 
@@ -41,26 +32,30 @@ class Batch():
         
         self.openai_client = openai_client
         self.batch_name = batch_data["batch_name"]
+        
         self.input_folder = batch_utils.path_exists(Path(input_folder))
         self.input_file_path = Path(f"{self.input_folder}/{self.batch_name}_input.jsonl")
         self.output_folder = batch_utils.path_exists(Path(output_folder)) 
         self.output_file_path = Path(f"{self.output_folder}/{self.batch_name}_output")
-        
-        # Come from the Batch API
-        self.batch_upload_response = None   # returned from files.create
-        self.batch_info_response = None     # returned from batches.create and batches.retrieve
-        self.batch_content_response = None  # returned from files.content. The JSONL lines are part of this
-        
-        self.batch_id = None                # The Batch API batch_id
-        
-        self.returned_jsonl = None          # JSONL returned from Batch API 
-        
-        
-        self.upload_file_content = None     # JSONL lines for file to upload to Batch API
-        self.upload_file_numlines = None    # Num lines in JSONL file uploaded to Batch API
-        
+
+        self.batch_data = batch_data
+
+        # JSONL generated from the input CSV for Batch API upload
+        # dict by unique_id CSV column
+        self.JSONL_from_CSV = dict()
+
+        # JSONL_returned starts as an empty dict by unique_id CSV column.
+        # It accumulates the JSONL returned from the Batch API.
+        # If on the first Batch API upload there are no failiers then JSONL_returned will be entirly populated with JSONL and is used to create the JSONL output file.
+        # If there are failiers then the failed lines are copied from JSONL_from_CSV for a subsequent upload. This is done iterativley.
+        # The results are accumulated in JSONL_returned until there are no failed lines and a JSONL output file can be created.
+        # There is a maximum_tries limit so the process is guarenteed to terminate.
+        self.JSONL_returned = dict()
+
+        # These are returned from the Batch API
         """
         batch_status    Description
+        ---------------------------
         validating	    the input file is being validated before the batch can begin
         failed	        the input file has failed the validation process
         in_progress	    the input file was successfully validated and the batch is currently being run
@@ -69,24 +64,102 @@ class Batch():
         expired	        the batch was not able to be completed within the 24-hour time window
         cancelling	    the batch is being cancelled (may take up to 10 minutes)
         cancelled	    the batch was cancelled
-        """      
-        self.api_batch_status = None  # The OpenAI batch status
-        
-        # The status of Batch instances in this program
-        # Do not confuse with api_batch_status
+        """  
+        self.batch_id = None                # A hash assigned by the Batch API
+        self.batch_status = None            # The important ones are "in_progress" and "completed"
+        self.batch_output_file_id = None    # Needed for getting the batch_text_content from the Batch API
+        self.batch_text_content = None      # Returned as JSONL from the Batch API    
+        self.batch_request_counts = None    # {completed: num_X, failed: num_Y, total: num_Z}
+
         # "started", "uploaded", "processing", "finished"
-        self.app_batch_status = "started"
+        self.batch_control_status = "started"
         self.start_time = None
-      
-        self.do_batch()
-      
+        
+        self.import_csv()
+
+    """
+        Inheritance was from here down
+        This is only done once for a Batch
+    """
+    def import_csv(self):
+        
+        self.source_csv_path = batch_utils.path_exists(Path(self.batch_data["source_csv_path"]))
+        self.from_line = self.batch_data["from_line"]
+        self.to_line = self.batch_data["to_line"]
+        self.source_csv_image_col = self.batch_data["source_csv_image_col"]
+        self.source_csv_unique_id_col = self.batch_data["source_csv_unique_id_col"]
+        
+        self.model = self.batch_data["model"]
+        self.prompt = self.batch_data["prompt"]
+        self.max_tokens = self.batch_data["max_tokens"]
+        self.endpoint = self.batch_data["endpoint"]
+        
+        self.unique_id_mode = None
+
+        self.df_input_csv = pd.read_csv(self.source_csv_path)
+        csv_len = len(self.df_input_csv)
+        if self.to_line == None: self.to_line = csv_len
+
+        if self.from_line >= self.to_line:
+            print(f"ERROR {self.batch_name}: from_line: {self.from_line} must be smaller than to_line: {self.to_line}")
+            exit()
+            
+        if self.to_line > csv_len:
+            print(f"ERROR {self.batch_name}: to_line: {self.to_line} must be smaller or equal to than CSV length: {csv_len}")
+            exit()
+
+        if self.source_csv_image_col in self.df_input_csv.columns:
+            print(f"OK {self.batch_name}: image column {self.source_csv_image_col} exists.")
+        else:
+            print(f"ERROR {self.batch_name}: image column {self.source_csv_image_col} does NOT exists.")
+            exit() 
+
+        """
+            source_csv_unique_id_col: The name of the column in the source CSV that is unique id for that line.
+            If you don't have a unique id column to pass into source_csv_unique_id_col then 
+            pass in any string that is NOT the name of a column in the source CSV and the columns will be labeled any_string-0, any_string-1, and so on.
+        """
+        if self.source_csv_unique_id_col in self.df_input_csv.columns:
+            self.unique_id_mode = "unique_id_col"
+            print(f"OK {self.batch_name}: unique_id_mode = unique_id_col. Lines in the batch will be uniquely identified according to the {self.source_csv_unique_id_col} column.")
+        else:
+            self.unique_id_mode = "auto"
+            print(f"OK {self.batch_name}: unique_id_mode = auto. Lines in batch will be uniquely identified as {self.source_csv_unique_id_col}-0, {self.source_csv_unique_id_col}-1, and so on.") 
+                
+        upload_file_content = f""
+        for index, row in self.df_input_csv[self.from_line: self.to_line].iterrows():
+            
+            if self.unique_id_mode == "auto":
+                custom_id = f"{self.source_csv_unique_id_col}-{index:05}"
+            else:
+                custom_id = row[self.source_csv_unique_id_col]
+            
+            jsonl_line = self.create_jsonl_batch_line(custom_id=custom_id, url_request=row[self.source_csv_image_col])
+            self.JSONL_from_CSV[custom_id] = jsonl_line
+            self.JSONL_returned[custom_id] = None
+            
+            upload_file_content = f"{upload_file_content}{jsonl_line}\n"  
+
+
+        self.write_upload_jsonl(upload_file_content)   
+
+
+    """
+        Write the for uploading/inputting to the Batch API 
+    """
+    def write_upload_jsonl(self, upload_file_content):
+        
+        print(f"WRITING {self.batch_name}: {self.input_file_path}")
+        with open(self.input_file_path, "w") as f:
+            f.write(upload_file_content)  
+            
     """
     """
-    def do_batch(self): 
-        self.start_time = int(time.time())
-        self.upload()
-        self.create()
-        self.get_api_status()
+    def do_batch(self):
+            self.start_time = int(time.time())
+            self.upload()
+            self.create()
+            self.get_api_status()
     """
     completion_window="24h"
     This is the maximum time the batch is allowed to take
@@ -169,110 +242,32 @@ class Batch():
         
         end_time = int(time.time())
         print(f"Processing time: {end_time - self.start_time} seconds")
-        
-
-"""
-    BatchFromCSV
-    Used for initialising the Batch from a CSV file
-    This is the first process that occures
-"""     
-class BatchFromCSV(Batch):
-    def __init__(self,  openai_client, input_folder, output_folder, batch_data):       
-
-        Batch.__init__(self, openai_client, input_folder, output_folder, batch_data)
-        
-        # Inheritance: Only in BatchFromCSV 
-        self.source_csv_path = batch_utils.path_exists(Path(batch_data["source_csv_path"]))
-        self.from_line = batch_data["from_line"]
-        self.to_line = batch_data["to_line"]
-        self.source_csv_image_col = batch_data["source_csv_image_col"]
-        self.source_csv_unique_id_col = batch_data["source_csv_unique_id_col"]
-        
-        self.model = batch_data["model"]
-        self.prompt = batch_data["prompt"]
-        self.max_tokens = batch_data["max_tokens"]
-        self.endpoint = batch_data["endpoint"]
-        
-        self.unique_id_mode = None
-      
-        self.df_input_csv = pd.read_csv(self.source_csv_path)
-        csv_len = len(self.df_input_csv)
-        if self.to_line == None: self.to_line = csv_len
-        
-        if self.from_line >= self.to_line:
-            print(f"ERROR {self.batch_name}: from_line: {self.from_line} must be smaller than to_line: {self.to_line}")
-            exit()
-            
-        if self.to_line > csv_len:
-            print(f"ERROR {self.batch_name}: to_line: {self.to_line} must be smaller or equal to than CSV length: {csv_len}")
-            exit()
-    
-    
-        if self.source_csv_image_col in self.df_input_csv.columns:
-            print(f"OK {self.batch_name}: image column {self.source_csv_image_col} exists.")
-        else:
-            print(f"ERROR {self.batch_name}: image column {self.source_csv_image_col} does NOT exists.")
-            exit()    
-    
-        """
-            source_csv_unique_id_col: The name of the column in the source CSV that is unique id for that line.
-            If you don't have a unique id column to pass into source_csv_unique_id_col then 
-            pass in any string that is NOT the name of a column in the source CSV and the columns will be labeled any_string-0, any_string-1, and so on.
-        """
-        if self.source_csv_unique_id_col in self.df_input_csv.columns:
-            self.unique_id_mode = "unique_id_col"
-            print(f"OK {self.batch_name}: unique_id_mode = unique_id_col. Lines in the batch will be uniquely identified according to the {self.source_csv_unique_id_col} column.")
-        else:
-            self.unique_id_mode = "auto"
-            print(f"OK {self.batch_name}: unique_id_mode = auto. Lines in batch will be uniquely identified as {self.source_csv_unique_id_col}-0, {self.source_csv_unique_id_col}-1, and so on.") 
-                
-        self.upload_file_content = f""
-        for index, row in self.df_input_csv[self.from_line: self.to_line].iterrows():
-            
-            if self.unique_id_mode == "auto":
-                custom_id = f"{self.source_csv_unique_id_col}-{index:05}"
-            else:
-                custom_id = row[self.source_csv_unique_id_col]
-            
-            # Yes - should probably be a method
-            jsonl_line = batch_utils.create_jsonl_batch_line(custom_id=custom_id, 
-                                                             url_request=row[self.source_csv_image_col], 
-                                                             endpoint=self.endpoint, 
-                                                             model=self.model, 
-                                                             prompt=self.prompt, 
-                                                             max_tokens=self.max_tokens)
-            
-            self.upload_file_content = f"{self.upload_file_content}{jsonl_line}\n"   
-
-    
-        # Write the for uploading/inputting to the Batch API
-        print(f"WRITING {self.batch_name}: {self.input_file_path}")
-        with open(self.input_file_path, "w") as f:
-            f.write(self.upload_file_content)  
-    
-    """
-    """ 
-    def do_batch(self):
-        print(f"OK DO BATCH FOM CSV: {self.batch_name}")
-        super().do_batch()
-       
-"""
-    BatchFromJSONL
-    Used for doing fixups of Batchs when some lines fail and they come back with missing lines in the JSONL
-"""  
-class BatchFromJSONL(Batch):
-    def __init__(self,  openai_client, input_folder, output_folder, batch_data):       
-
-        Batch.__init__(self, openai_client, input_folder, output_folder, batch_data)
-    
-    """
-    """ 
-    def do_batch(self):
-        print(f"OK DO BATCH FOM JSONL: {self.batch_name}")
-        super().do_batch()     
-        
    
-        
-    
-        
-        
+    """
+        Creates a JSONL line for OCRing from input from a CSV
+    """      
+    def create_jsonl_batch_line(self, custom_id, url_request):
+
+        messages = f'[{{"role": "user","content": [{{"type": "text", "text": "{self.prompt}"}}, {{"type": "image_url", "image_url": {{"url": "{url_request}"}}}}]}}]'
+
+        ret = f'{{"custom_id": "{custom_id}", "method": "POST", "url": "{self.endpoint}", "body": {{"model": "{self.model}", "messages": {messages}, "max_tokens": {self.max_tokens}}}}}'
+
+        return ret 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
