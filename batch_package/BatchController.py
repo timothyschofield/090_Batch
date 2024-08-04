@@ -17,13 +17,10 @@ class BatchController:
         
         self.openai_client = openai_client
         
-        INPUT_FOLDER = batch_utils.path_exists(Path(f"batch_input"))
-        OUTPUT_FOLDER = batch_utils.path_exists(Path(f"batch_output"))
+        self.input_folder = batch_utils.path_exists(Path(f"batch_input"))
+        self.output_folder = batch_utils.path_exists(Path(f"batch_output"))
         
         self.batch_list = dict()
-        
-        self.input_folder = INPUT_FOLDER
-        self.output_folder = OUTPUT_FOLDER
         
         self.check_status_delay = 5 # seconds
         self.start_time = None
@@ -74,13 +71,13 @@ class BatchController:
         
         processing_count = 0
         for batch_name, batch in self.batch_list.items():
-            batch_info_response = batch.get_api_status()
-            print(f"name: {batch_name}, status: {batch_info_response.status}, request_counts: {batch_info_response.request_counts}")
+            batch_status, batch_output_file_id, batch_request_counts = batch.api_get_status()
+            print(f"name: {batch_name}, status: {batch_status}, request_counts: {batch_request_counts}")
 
-            if batch.app_batch_status == "processing":
+            if batch.batch_control_status == "processing":
                 processing_count = processing_count + 1
-                if batch_info_response.status == "completed":
-                    batch.app_batch_status = "finished" 
+                if batch_status == "completed":
+                    batch.batch_control_status = "finished" 
                     batch.finished()
                         
         if processing_count == 0:

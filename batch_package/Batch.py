@@ -68,9 +68,9 @@ class Batch():
         self.batch_id = None                # A hash assigned by the Batch API
         self.batch_status = None            # The important ones are "in_progress" and "completed"
         self.batch_output_file_id = None    # Needed for getting the batch_text_content from the Batch API
-        self.batch_text_content = None      # Returned as JSONL from the Batch API    
-        self.batch_request_counts = None    # {completed: num_X, failed: num_Y, total: num_Z}
-
+        self.batch_returned_text = None     # Returned as JSONL from the Batch API
+        self.batch_request_counts = None
+        
         # "started", "uploaded", "processing", "finished"
         self.batch_control_status = "started"
         self.start_time = None
@@ -136,112 +136,125 @@ class Batch():
             
             jsonl_line = self.create_jsonl_batch_line(custom_id=custom_id, url_request=row[self.source_csv_image_col])
             self.JSONL_from_CSV[custom_id] = jsonl_line
-            self.JSONL_returned[custom_id] = None
+            self.JSONL_returned[custom_id] = '{"status": "failed"}'
             
             upload_file_content = f"{upload_file_content}{jsonl_line}\n"  
 
 
         self.write_upload_jsonl(upload_file_content)   
 
-
     """
-        Write the for uploading/inputting to the Batch API 
+        Write the file that will be uploaded to the Batch API 
     """
-    def write_upload_jsonl(self, upload_file_content):
+    def write_upload_jsonl(self, file_content):
         
         print(f"WRITING {self.batch_name}: {self.input_file_path}")
         with open(self.input_file_path, "w") as f:
-            f.write(upload_file_content)  
+            f.write(file_content)  
             
     """
     """
     def do_batch(self):
             self.start_time = int(time.time())
-            self.upload()
-            self.create()
-            self.get_api_status()
+            self.api_upload_jsonl()
+            self.api_create()
+            self.api_get_status()
+            
     """
-    completion_window="24h"
-    This is the maximum time the batch is allowed to take
-    If it does not complete in theis times, then self.api_batch_status = expired
+        Upload the JSONL file to the Batch API
     """ 
-    def upload(self):
+    def api_upload_jsonl(self):
         
         # This is the best place to absolutly know how many lines were uploaded whether
         # the file came via CSV or directly from JSONL
         with open(f"{self.input_file_path}", "rb") as fp:
             self.upload_file_numlines = len(fp.readlines())
         
-        self.batch_upload_response = self.openai_client.files.create(file=open(self.input_file_path, "rb"), purpose="batch")
-        # self.batch_upload_response = self.openai_client.files.create(file=open(self.input_file_path, "rb"), purpose="batch")
+        batch_upload_response = self.openai_client.files.create(file=open(self.input_file_path, "rb"), purpose="batch")
         
-        self.api_batch_status = self.batch_upload_response.status
-        self.app_batch_status = "uploaded"
+        self.batch_id = batch_upload_response.id
+        self.batch_status = batch_upload_response.status
+        self.batch_control_status = "uploaded"
         
     """
     """ 
-    def create(self):
-        self.batch_info_response = self.openai_client.batches.create(input_file_id=self.batch_upload_response.id, endpoint=self.endpoint, completion_window="24h")
+    def api_create(self):
+        batch_info_response = self.openai_client.batches.create(input_file_id=self.batch_id, endpoint=self.endpoint, completion_window="24h")
         
-        self.batch_id = self.batch_info_response.id
-        
-        self.api_batch_status = self.batch_info_response.status
-        self.app_batch_status = "processing"
+        self.batch_id = batch_info_response.id
+        self.batch_status = batch_info_response.status
+        self.batch_control_status = "processing"
         
     """
-        check the status of a batch
+        check the status of a API batch
     """ 
-    def get_api_status(self):
-        self.batch_info_response = self.openai_client.batches.retrieve(self.batch_id)
+    def api_get_status(self):
+        batch_info_response = self.openai_client.batches.retrieve(self.batch_id)
         
-        self.batch_id = self.batch_info_response.id
-        self.api_batch_status = self.batch_info_response.status
+        self.batch_status = batch_info_response.status
+        self.batch_output_file_id = batch_info_response.output_file_id 
+        self.batch_request_counts = batch_info_response.request_counts
         
-        return self.batch_info_response
+        return (self.batch_status, self.batch_output_file_id, self.batch_request_counts)
+    
+    """
+    """
+    def api_download_jsonl(self):
+        # Must deal with this wehne 0 lines returned
+        if self.batch_output_file_id == None:
+            print("No output_file_id returned from Batch API") 
+        
+        self.batch_returned_text = self.openai_client.files.content(self.batch_output_file_id).text
     
     """
         Downloads the resultant processed batch as a JSONL file and CSV file
     """ 
     def finished(self):
+        self.api_download_jsonl()
+        self.do_fixup()
+    
+    """
+        The JSONL data has been returned from the Batch API
+        This determines if there are any failures and 
+        creates another JSONL batch for upload to the Batch API to try and fix them.
         
-        if self.batch_info_response.output_file_id == None:
-            print("No output_file_id returned from Batch API") # Must deal with this wehne 0 lines returned
-        
-        self.batch_content_response = self.openai_client.files.content(self.batch_info_response.output_file_id)        
-        self.returned_jsonl = self.batch_content_response.text.splitlines()
+    """
+    def do_fixup(self):
         
         print("********************************************")
         print(f"Num JSONL lines uploded: {self.upload_file_numlines}")
         
-        num_jsonl_lines_returned = len(self.returned_jsonl)
+        batch_returned_list = self.batch_returned_text.splitlines()
+        
+        num_jsonl_lines_returned = len(batch_returned_list)
         print(f"Returned JSONL has: {num_jsonl_lines_returned} lines")
         print("********************************************")
         
-        self.download()
-        
         if num_jsonl_lines_returned < self.upload_file_numlines:
-            print("FIXUP NEEDED")
+            print("FIXUP NEEDED - CREATE NEW JSONL")
             
-            #self.returned_jsonl         # 7 JSONL lines returned from Batch API 
+            # self.JSONL_returned[custom_id]
+
+
+            #self.batch_returned_text           # 7 JSONL lines returned from Batch API 
             
-            #self.upload_file_content    # 10 JSONL lines for file to upload/input to Batch API 
+            #self.upload_file_content           # 10 JSONL lines for file to upload/input to Batch API 
 
         else:
             print("NO FIXUP NEEDED - NO ACTION")
-            # Free up some memory
-            self.returned_jsonl = None
-            self.upload_file_content = None
+            self.download(self.batch_returned_text)
+    
     """
+        downloads the JSONL file returned from Batch API
     """
-    def download(self):
+    def download(self, data):
         
-        # The returned data in total
         print(f"WRITING: {self.output_file_path}.jsonl")
         with open(f"{self.output_file_path}.jsonl", "w") as f:
-            f.write(self.batch_content_response.text)
+            f.write(data)
         
-        end_time = int(time.time())
-        print(f"Processing time: {end_time - self.start_time} seconds")
+        print(f"Processing time: {int(time.time()) - self.start_time} seconds")
+   
    
     """
         Creates a JSONL line for OCRing from input from a CSV

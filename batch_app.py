@@ -64,10 +64,10 @@ to_line2 = 30
 # gpt-4o        max_tokens  4096 equivalent to gpt-4-turbo
 # gpt-4o-mini   max_tokens 16348 equivalent to gpt-3.5 - NOT video or audio
 
-batch1_data = {"batch_name": "test_batch_10_lines", 
+batch1_data = {"batch_name": "test_batch_5_lines", 
             "source_csv_path": "batch_source_csv/NY_specimens_to_transcribe_small.csv", 
             "from_line": 0, 
-            "to_line": 10, 
+            "to_line": 5, 
             "source_csv_image_col": "DarImageURL", 
             "source_csv_unique_id_col": "DarCatalogNumber", 
             "model": "gpt-4o", 
