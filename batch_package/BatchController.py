@@ -34,21 +34,13 @@ class BatchController:
             print(f"{batch_name} is not uploaded.")
             return False
         
-        this_batch = self.add_batch(batch_data)
-        this_batch.do_batch()
-
-    """
-        Add a BatchFromCSV to the BatchController
-    """    
-    def add_batch(self, batch_data):
-        
         this_batch = Batch.Batch(openai_client=self.openai_client, input_folder=self.input_folder, output_folder=self.output_folder, batch_data=batch_data)
 
         batch_name = batch_data["batch_name"]
-        self.batch_list[batch_name] = this_batch
+        self.batch_list[batch_name] = this_batch       
         
-        return this_batch
-    
+        this_batch.do_batch()
+
     """
         This must be called after creating all the Batches to monitor the Batches' progress
         and download the results once a batch in completed
@@ -71,8 +63,8 @@ class BatchController:
         
         processing_count = 0
         for batch_name, batch in self.batch_list.items():
-            batch_status, batch_output_file_id, batch_request_counts = batch.api_get_status()
-            print(f"name: {batch_name}, status: {batch_status}, request_counts: {batch_request_counts}")
+            batch_status, batch_output_file_id, batch_request_counts, fixup_version = batch.api_get_status()
+            print(f"name: {batch_name}, version: {fixup_version}, status: {batch_status}, request_counts: {batch_request_counts}")
 
             if batch.batch_control_status == "processing":
                 processing_count = processing_count + 1
