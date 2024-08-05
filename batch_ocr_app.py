@@ -1,7 +1,9 @@
 """
-    File: main_batch_app.py
+    File: main_batch_ocr_app.py
     Author: Tim Schofield
     Date: 23 July 2024  
+
+    OCR only
 
     This is the main entry point to the image batch application.
     This uses the OpenAI Batch processing API
@@ -34,7 +36,6 @@
 
 """
 
-# python3 __pycache__/App.cpython-310.pyc
 from batch_package import App
 
 app1 = App() 
@@ -65,7 +66,7 @@ to_line2 = 30
 # gpt-4o-mini   max_tokens 16348 equivalent to gpt-3.5 - NOT video or audio
 
 batch1_data = {"batch_name": "test_batch_5_lines", 
-            "source_csv_path": "batch_source_csv/NY_specimens_to_transcribe_test.csv", 
+            "source_csv_path": "batch_source_csv/NY_specimens_to_transcribe_small.csv", 
             "from_line": 0, 
             "to_line": 10, 
             "source_csv_image_col": "DarImageURL", 

@@ -137,7 +137,7 @@ class Batch():
             else:
                 custom_id = row[self.source_csv_unique_id_col]
             
-            jsonl_line = self.create_jsonl_batch_line(custom_id=custom_id, url_request=row[self.source_csv_image_col])
+            jsonl_line = self.create_jsonl_ocr_batch_line(custom_id=custom_id, url_request=row[self.source_csv_image_col])
             self.JSONL_from_CSV[custom_id] = jsonl_line
             self.JSONL_accumulated_output[custom_id] = {"id": "failed"}
             
@@ -209,7 +209,7 @@ class Batch():
         if self.batch_output_file_id == None:
             print("*********** No output_file_id returned from Batch API ***********************")
             print("*********** MIGHT LOOP INDEFINITELY ***********************")
-            self.batch_returned_text = ""
+            self.batch_returned_text = f""
         else:
             self.batch_returned_text = self.openai_client.files.content(self.batch_output_file_id).text
     
@@ -235,13 +235,13 @@ class Batch():
         
         for this_line in batch_returned_list:
             this_line = this_line.replace("null", "None")   # Sanatize the JSON line
-            this_line_dict = eval(this_line)                # Turn into a Dict
+            this_line_dict = eval(this_line)                # JSON Str -> Dict
             
             this_custom_id = this_line_dict["custom_id"]
             
             # Get the line back from the accumulated JSON and do a check to see it hasn't been written to already
             # This should be impossible - but you never can tell
-            accumulated_line = self.JSONL_accumulated_output[int(this_custom_id)] # remember the accumulated JSONL is evaluated and stored as a Dict
+            accumulated_line = self.JSONL_accumulated_output[int(this_custom_id)] 
             if accumulated_line["id"] != "failed":
                 print(f"ERROR - accumlated line already written to {this_custom_id}")
         
@@ -254,7 +254,10 @@ class Batch():
             if jsonl_dict_line['id'] == "failed":
                 jsonl_line = self.JSONL_from_CSV[int(custom_id)]
                 
-                # jsonl_line = jsonl_line.replace("jpgX", "jpg") # fix the url
+                # For testing the handeling of failiers you can corrupt the url in the CSV
+                # by putting "X" after jpg in the url - that line will fail
+                # This line of code will fix them the second time through so they don't fail forever
+                jsonl_line = jsonl_line.replace("jpgX", "jpg") # fix the url
                 
                 upload_fixup_file_content = f"{upload_fixup_file_content}{jsonl_line}\n" 
     
@@ -268,14 +271,13 @@ class Batch():
             self.download()
 
     """
-        downloads the JSONL file returned from Batch API
-        Down load the final fixed up JSONL returned from the Batch PI
+        Down load the final and complete, fixed up JSONL returned from the Batch API
     """
     def download(self):
         
         jsonl_output = f""
         for key, dict_line in self.JSONL_accumulated_output.items():
-            jsonl_line = json.dumps(dict_line)
+            jsonl_line = json.dumps(dict_line)              # Dict -> JSON
             jsonl_output = f"{jsonl_output}{jsonl_line}\n" 
         
         print(f"WRITING: {self.output_file_path}.jsonl")
@@ -288,7 +290,7 @@ class Batch():
     """
         Creates a JSONL line for OCRing from input from a CSV
     """      
-    def create_jsonl_batch_line(self, custom_id, url_request):
+    def create_jsonl_ocr_batch_line(self, custom_id, url_request):
 
         messages = f'[{{"role": "user","content": [{{"type": "text", "text": "{self.prompt}"}}, {{"type": "image_url", "image_url": {{"url": "{url_request}"}}}}]}}]'
 
