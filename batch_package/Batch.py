@@ -44,13 +44,15 @@ class Batch():
         # dict by unique_id CSV column
         self.JSONL_from_CSV = dict()
 
-        # JSONL_returned starts as an empty dict by unique_id CSV column.
+        # JSONL_accumulated_output starts as an empty dict by unique_id CSV column.
         # It accumulates the JSONL returned from the Batch API.
-        # If on the first Batch API upload there are no failiers then JSONL_returned will be entirly populated with JSONL and is used to create the JSONL output file.
+        # If on the first Batch API upload there are no failiers then JSONL_accumulated_output will be entirly populated with JSONL and is used to create the JSONL output file.
         # If there are failiers then the failed lines are copied from JSONL_from_CSV for a subsequent upload. This is done iterativley.
-        # The results are accumulated in JSONL_returned until there are no failed lines and a JSONL output file can be created.
+        # The results are accumulated in JSONL_accumulated_output until there are no failed lines and a JSONL output file can be created.
         # There is a maximum_tries limit so the process is guarenteed to terminate.
-        self.JSONL_returned = dict()
+        
+        # Each JSONL line is evaluated before storage and stored as a Dict
+        self.JSONL_accumulated_output = dict()
 
         # These are returned from the Batch API
         """
@@ -68,7 +70,7 @@ class Batch():
         self.batch_id = None                # A hash assigned by the Batch API
         self.batch_status = None            # The important ones are "in_progress" and "completed"
         self.batch_output_file_id = None    # Needed for getting the batch_text_content from the Batch API
-        self.batch_returned_text = None     # Returned as JSONL from the Batch API
+        self.batch_returned_text = None     # Returned as JSONL from a Batch API
         self.batch_request_counts = None
         
         # "started", "uploaded", "processing", "finished"
@@ -136,10 +138,13 @@ class Batch():
             
             jsonl_line = self.create_jsonl_batch_line(custom_id=custom_id, url_request=row[self.source_csv_image_col])
             self.JSONL_from_CSV[custom_id] = jsonl_line
-            self.JSONL_returned[custom_id] = '{"status": "failed"}'
+            self.JSONL_accumulated_output[custom_id] = {"id": "failed"}
             
             upload_file_content = f"{upload_file_content}{jsonl_line}\n"  
 
+
+        #for key, value in self.JSONL_accumulated_output.items():
+        #   print(f"{key} {eval(value)['id']}")
 
         self.write_upload_jsonl(upload_file_content)   
 
@@ -226,19 +231,38 @@ class Batch():
         
         batch_returned_list = self.batch_returned_text.splitlines()
         
-        num_jsonl_lines_returned = len(batch_returned_list)
-        print(f"Returned JSONL has: {num_jsonl_lines_returned} lines")
+        print(f"Returned JSONL has: {len(batch_returned_list)} lines")
         print("********************************************")
         
-        if num_jsonl_lines_returned < self.upload_file_numlines:
+        if len(batch_returned_list) < self.upload_file_numlines:
             print("FIXUP NEEDED - CREATE NEW JSONL")
             
-            # self.JSONL_returned[custom_id]
+            # self.JSONL_accumulated_output[custom_id]
+
+            for this_line in batch_returned_list:
+                this_line = this_line.replace("null", "None")   # Sanatize the JSON line
+                this_line_dict = eval(this_line)                # Turn into a Dict
+                
+                this_custom_id = this_line_dict["custom_id"]
+                
+                # Get the line back from the accumulated JSON and do a check to see it hasn't been written to already
+                # This should be impossible - but you never can tell
+                accumulated_line = self.JSONL_accumulated_output[int(this_custom_id)] # remember the accumulated JSONL is evaluated and stored as a Dict
+                if accumulated_line["id"] != "failed":
+                    print(f"ERROR - accumlated line already written to {this_custom_id}")
+
+                # Write the returned JSONL into the accumplated list
+                self.JSONL_accumulated_output[int(this_custom_id)] = this_line_dict # I'm writing the Dict version in - why not!
+            # eo writing returned JSONL into accumulated list
+
+            # Remember value will be a Dict
+            for custon_id, jsonl_dict_line in self.JSONL_accumulated_output.items():
+                print(f"{custon_id} {jsonl_dict_line['id']}")
 
 
-            #self.batch_returned_text           # 7 JSONL lines returned from Batch API 
+
+            # batch_returned_list               # 7 JSONL lines returned from Batch API 
             
-            #self.upload_file_content           # 10 JSONL lines for file to upload/input to Batch API 
 
         else:
             print("NO FIXUP NEEDED - NO ACTION")
