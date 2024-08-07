@@ -33,6 +33,8 @@ class Batch():
         self.openai_client = openai_client
         self.batch_name = batch_data["batch_name"]
         
+        self.batch_type = batch_data["batch_type"] # "OCR" or "TEXT"
+        
         self.input_folder = batch_utils.path_exists(Path(input_folder))
         self.input_file_path = Path(f"{self.input_folder}/{self.batch_name}_input.jsonl")
         self.output_folder = batch_utils.path_exists(Path(output_folder)) 
@@ -137,9 +139,17 @@ class Batch():
             else:
                 custom_id = row[self.source_csv_unique_id_col]
             
-            jsonl_line = self.create_jsonl_ocr_batch_line(custom_id=custom_id, url_request=row[self.source_csv_image_col])
-            self.JSONL_from_CSV[custom_id] = jsonl_line
-            self.JSONL_accumulated_output[custom_id] = {"id": "failed"}
+            if self.batch_type == "TEXT":
+                jsonl_line = self.create_jsonl_text_batch_line(custom_id=custom_id, text_input=row[self.source_csv_image_col])
+            else:
+                if self.batch_type == "OCR":
+                    jsonl_line = self.create_jsonl_ocr_batch_line(custom_id=custom_id, url_request=row[self.source_csv_image_col])
+                else:
+                    print(f"ERROR: Unkown batch type {self.batch_type}")
+                    exit()
+            
+            self.JSONL_from_CSV[str(custom_id)] = jsonl_line
+            self.JSONL_accumulated_output[str(custom_id)] = {"id": "failed"}
             
             upload_file_content = f"{upload_file_content}{jsonl_line}\n"  
 
@@ -241,18 +251,18 @@ class Batch():
             
             # Get the line back from the accumulated JSON and do a check to see it hasn't been written to already
             # This should be impossible - but you never can tell
-            accumulated_line = self.JSONL_accumulated_output[int(this_custom_id)] 
+            accumulated_line = self.JSONL_accumulated_output[str(this_custom_id)]            # was int(this_custom_id) 1
             if accumulated_line["id"] != "failed":
                 print(f"ERROR - accumlated line already written to {this_custom_id}")
         
             # Write the returned JSONL (as a Dict) into the accumplated list
-            self.JSONL_accumulated_output[int(this_custom_id)] = this_line_dict 
+            self.JSONL_accumulated_output[str(this_custom_id)] = this_line_dict              # was int(this_custom_id) 2
             
         upload_fixup_file_content = f""
         for custom_id, jsonl_dict_line in self.JSONL_accumulated_output.items():
             print(f"{custom_id} {jsonl_dict_line['id']}")
             if jsonl_dict_line['id'] == "failed":
-                jsonl_line = self.JSONL_from_CSV[int(custom_id)]
+                jsonl_line = self.JSONL_from_CSV[str(custom_id)]   # was int(custom_id) 3
                 
                 # For testing the handeling of failiers you can corrupt the url in the CSV
                 # by putting "X" after jpg in the url - that line will fail
@@ -268,12 +278,12 @@ class Batch():
             self.do_batch()
         else:
             print("NO FIXUP NEEDED - NO ACTION")
-            self.download()
+            self.download_accumulated_jsonl()
 
     """
         Down load the final and complete, fixed up JSONL returned from the Batch API
     """
-    def download(self):
+    def download_accumulated_jsonl(self):
         
         jsonl_output = f""
         for key, dict_line in self.JSONL_accumulated_output.items():
@@ -287,6 +297,31 @@ class Batch():
         print(f"Processing time: {int(time.time()) - self.start_time} seconds")
    
    
+
+    
+    """
+    """
+    def create_jsonl_text_batch_line(self, custom_id, text_input):
+
+        text_input = text_input.replace('"', '\\"') # seems to work
+        
+        # text_input = text_input.replace('\\"', '\"') # No
+        
+        # text_input = text_input.replace('"', '”') # an alternative really?
+        
+        
+        ch10 = f"{chr(10)}"
+        text_input = text_input.replace(ch10, ' ') # seems to work replace(ch10, '\\n) ?
+        
+        
+        
+        messages = f'[{{"role": "system", "content": "{self.prompt}"}}, {{"role": "user", "content": "{text_input}"}}]'
+
+        ret = f'{{"custom_id": "{custom_id}", "method": "POST", "url": "{self.endpoint}", "body": {{"model": "{self.model}", "messages": {messages}, "max_tokens": {self.max_tokens}}}}}'
+
+        return ret
+
+
     """
         Creates a JSONL line for OCRing from input from a CSV
     """      
@@ -296,12 +331,7 @@ class Batch():
 
         ret = f'{{"custom_id": "{custom_id}", "method": "POST", "url": "{self.endpoint}", "body": {{"model": "{self.model}", "messages": {messages}, "max_tokens": {self.max_tokens}}}}}'
 
-        return ret 
-
-
-
-
-
+        return ret
 
 
 

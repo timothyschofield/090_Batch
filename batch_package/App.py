@@ -2,6 +2,10 @@
     App.py
     Author: Tim Schofield
     Date: 23 July 2024 
+    
+    Next step SQL?
+    Read Batch APi and create Batches accordingly
+    
 """
 from pathlib import Path  
 import pandas as pd
@@ -40,4 +44,9 @@ class App:
     """
     def display_openai_batches(self):   
         self.batch_controller.display_openai_batches()
+        
+    """
+    """
+    def cancel_in_progress_openai_batches(self):   
+        self.batch_controller.cancel_in_progress_openai_batches()        
         

@@ -92,25 +92,21 @@ class BatchController:
         print("---------------------------------")
        
     """
-        Cancels/Deletes the batches in the Batch API system whatever the state
-        
-        Can not cancel completed batchs
-        
-        If necessary, you can cancel an ongoing batch. 
+        If necessary, you can cancel an in_progress batchs. 
         The batch's status will change to cancelling until in-flight requests are complete (up to 10 minutes), 
         after which the status will change to cancelled.
         
-        openai.ConflictError: Error code: 409 - {'error': {'message': "Cannot cancel a batch with status 'completed'.", 'type': 'invalid_request_error', 'param': None, 'code': None}}
-        
-        Dosn't work
+        Can't cancel batches with status "failed" or "completed"
+        We can only canel batches that are "in_progress"
     """
-    def cancel_openai_batches(self):
+    def cancel_in_progress_openai_batches(self):
         number_to_cancel = 20
         active_batches = self.openai_client.batches.list(limit=number_to_cancel)
         print(f"CANCELING {number_to_cancel} BATCHES")
         for batch in active_batches.data:
             print(f"id: {batch.id}, status: {batch.status}, created: {datetime.datetime.utcfromtimestamp(batch.created_at)}, {batch.request_counts}, output_file_id: {batch.output_file_id}")
-            self.openai_client.batches.cancel(batch.id)
+            if batch.status == "in_progress":
+                self.openai_client.batches.cancel(batch.id)
             
         print("REMAINING BATCHES")
         self.display_openai_batches()
