@@ -138,15 +138,21 @@ class Batch():
                 custom_id = f"{self.source_csv_unique_id_col}-{index:05}"
             else:
                 custom_id = row[self.source_csv_unique_id_col]
-            
-            if self.batch_type == "TEXT":
-                jsonl_line = self.create_jsonl_text_batch_line(custom_id=custom_id, text_input=row[self.source_csv_image_col])
-            else:
-                if self.batch_type == "OCR":
+                
+            # Python 3.10
+            match self.batch_type:
+                case "TEXT":
+                    jsonl_line = self.create_jsonl_text_batch_line(custom_id=custom_id, text_input=row[self.source_csv_image_col])
+                case "OCR":
                     jsonl_line = self.create_jsonl_ocr_batch_line(custom_id=custom_id, url_request=row[self.source_csv_image_col])
-                else:
+                case _:
                     print(f"ERROR: Unkown batch type {self.batch_type}")
                     exit()
+            
+            # Test for valid JSON here
+            if batch_utils.is_json(jsonl_line) == False:
+                print(f"INVALID JSON: {jsonl_line}")
+                exit()
             
             self.JSONL_from_CSV[str(custom_id)] = jsonl_line
             self.JSONL_accumulated_output[str(custom_id)] = {"id": "failed"}
@@ -155,6 +161,7 @@ class Batch():
 
         self.write_upload_jsonl(upload_file_content)   
 
+       
     """
         Write the file that will be uploaded to the Batch API 
     """
@@ -251,18 +258,18 @@ class Batch():
             
             # Get the line back from the accumulated JSON and do a check to see it hasn't been written to already
             # This should be impossible - but you never can tell
-            accumulated_line = self.JSONL_accumulated_output[str(this_custom_id)]            # was int(this_custom_id) 1
+            accumulated_line = self.JSONL_accumulated_output[str(this_custom_id)]       
             if accumulated_line["id"] != "failed":
                 print(f"ERROR - accumlated line already written to {this_custom_id}")
         
             # Write the returned JSONL (as a Dict) into the accumplated list
-            self.JSONL_accumulated_output[str(this_custom_id)] = this_line_dict              # was int(this_custom_id) 2
+            self.JSONL_accumulated_output[str(this_custom_id)] = this_line_dict           
             
         upload_fixup_file_content = f""
         for custom_id, jsonl_dict_line in self.JSONL_accumulated_output.items():
             print(f"{custom_id} {jsonl_dict_line['id']}")
             if jsonl_dict_line['id'] == "failed":
-                jsonl_line = self.JSONL_from_CSV[str(custom_id)]   # was int(custom_id) 3
+                jsonl_line = self.JSONL_from_CSV[str(custom_id)] 
                 
                 # For testing the handeling of failiers you can corrupt the url in the CSV
                 # by putting "X" after jpg in the url - that line will fail
@@ -296,31 +303,52 @@ class Batch():
         
         print(f"Processing time: {int(time.time()) - self.start_time} seconds")
    
-   
 
-    
     """
+    
+    Backspace to be replaced with \b
+    Form feed to be replaced with \f
+    Newline to be replaced with \n
+    Carriage return to be replaced with \r
+    Tab to be replaced with \t
+    Double quote to be replaced with \"
+    Backslash to be replaced with \\
+        
+    escaped = a_string.translate(str.maketrans({"-":  r"\-",
+                                            "]":  r"\]",
+                                            "\\": r"\\",
+                                            "^":  r"\^",
+                                            "$":  r"\$",
+                                            "*":  r"\*",
+                                            ".":  r"\."}))
+                                            
+          
+    All these problems are caused by trying to put a JSON string inside JSON
+    This happens because when, in the OCR, valid JSON is not returned, and I put the error JSON in the verbatim_OCR field.
+    I should have a seperate error_json column in the speadsheet and still return verbatim OCR in the verbatim_OCR field.                                                                  
+                                            
     """
     def create_jsonl_text_batch_line(self, custom_id, text_input):
 
-        text_input = text_input.replace('"', '\\"') # seems to work
-        
-        # text_input = text_input.replace('\\"', '\"') # No
-        
-        # text_input = text_input.replace('"', '”') # an alternative really?
-        
+        # How to escape a backslash on its own \ without fucking up \n, \t etc.
+        # backslash is char 92
+
+        text_input = text_input.replace('"', '\\"') # escape double quotes - seems to work - fixes lines 0 -> 100
         
         ch10 = f"{chr(10)}"
-        text_input = text_input.replace(ch10, ' ') # seems to work replace(ch10, '\\n) ?
+        text_input = text_input.replace(ch10, "\\n") # escape newline - seems to work - fixes lines 100 -> 200
         
+        ch9 = f"{chr(9)}"
+        text_input = text_input.replace(ch9, "\\t") # escape horizonal tab - fixes line 280
         
+        #ch92 = f"{chr(92)} "
+        #text_input = text_input.replace(ch92, '\\') # NO
         
         messages = f'[{{"role": "system", "content": "{self.prompt}"}}, {{"role": "user", "content": "{text_input}"}}]'
 
         ret = f'{{"custom_id": "{custom_id}", "method": "POST", "url": "{self.endpoint}", "body": {{"model": "{self.model}", "messages": {messages}, "max_tokens": {self.max_tokens}}}}}'
 
         return ret
-
 
     """
         Creates a JSONL line for OCRing from input from a CSV

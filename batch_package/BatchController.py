@@ -59,7 +59,8 @@ class BatchController:
         When a Batch status becomes "completed" the JSONP and CSV results files are downloaded
     """
     def check_status(self):
-        print(time.ctime())
+        end_time = int(time.time())
+        print(f"{end_time - self.start_time} seconds")
         
         processing_count = 0
         for batch_name, batch in self.batch_list.items():

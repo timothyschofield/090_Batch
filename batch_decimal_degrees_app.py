@@ -7,7 +7,6 @@
     
     
 """
-
 from batch_package import App
 
 app1 = App() 
@@ -20,14 +19,12 @@ prompt = (
         f"If you can not find a value for a key return the string 'None' as the value."
         )
 
-
-
-
+# Not including to_line
 batch1_data = {"batch_name": "peru_dms_test", 
             "batch_type": "TEXT",  
             "source_csv_path": "batch_source_csv/Peru_field_from_Frank.csv", 
-            "from_line": 0, 
-            "to_line": 10,
+            "from_line": 100, 
+            "to_line": 200,
             "source_csv_image_col": "AI_verbatim", 
             "source_csv_unique_id_col": "barcode", 
             "model": "gpt-4o", 

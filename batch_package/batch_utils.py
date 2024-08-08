@@ -1,5 +1,14 @@
 import pandas as pd
 import os
+import json
+
+
+def is_json(myjson):
+  try:
+    json.loads(myjson)
+  except ValueError as e:
+    return False
+  return True
 
 def path_exists(input_path):
     if os.path.exists(input_path) != True:
